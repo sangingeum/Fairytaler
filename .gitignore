@@ -1,0 +1,11 @@
+
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/openai_npc_scriptwriter.iml
+.idea/vcs.xml
+__pycache__/Character.cpython-39.pyc
+__pycache__/Item.cpython-39.pyc
+__pycache__/ResourcePool.cpython-39.pyc
+__pycache__/StoryManager.cpython-39.pyc

@@ -73,7 +73,7 @@ class ResourcePool:
             ]
         )
         name = response["choices"][0]["message"]["content"].replace(".", "")
-        character = Character(name, id, [], [], [item], background, personality, race)
+        character = Character(name, id, {}, {}, [item], background, personality, race)
         self.characters.append(character)
         #print(character.to_dict())
 

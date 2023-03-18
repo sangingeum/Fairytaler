@@ -53,3 +53,17 @@ class Character:
             "race": self.race
         }
         return character_dict
+
+    def describe_relationship(self, target_character):
+        target_name = target_character.name
+        to_target_relationship = self.relationships.get(target_name)
+        if to_target_relationship is None:
+            self.relationships[target_name] = "first encounter"
+        from_target_relationship = target_character.relationships.get(self.name)
+        if from_target_relationship is None:
+            target_character.relationships[self.name] = "first encounter"
+        description = "\nRelationship:" \
+                      "\nFrom {} to {}: {}" \
+                      "\nFrom {} to {}: {}".format(self.name, target_name, self.relationships[target_name],
+                                                   target_name, self.name, target_character.relationships[self.name])
+        return description

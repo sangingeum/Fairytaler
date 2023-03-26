@@ -172,7 +172,7 @@ class StoryManager:
         print(updated_background1)
         print("updated_background2")
         print(updated_background2)
-        story_summary = self.summarize(self.story + cur_event)
+        story_summary = self.update_story(cur_event)
         print("story_summary")
         print(story_summary)
 
@@ -286,15 +286,14 @@ class StoryManager:
         character.background = changed_background
         return changed_background
 
-    def summarize(self, story):
+    def update_story(self, event):
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Story:"
-                                            "\n{}"
+                {"role": "user", "content": "\n{}"
                                             "\nSummarize the story in {} sentences"
-                                            "\nYou can omit unimportant details to shoten the story.".format(story, 20)}
+                                            "\nYou can omit unimportant details to shoten the story.".format(self.story + event, 20)}
             ]
         )
         summary = response["choices"][0]["message"]["content"]

@@ -5,10 +5,9 @@ from ResourcePool import *
 import random
 import re
 
-#to do:
-#event stopping criteria
-#terminate event after certain amount of turns
-
+# to do:
+# equipment, item system 구현
+# companion 고려한 야야기, 이벤트 생성
 
 class StoryManager:
     def __init__(self):
@@ -47,10 +46,12 @@ class StoryManager:
                                 "\nDo not describe any actions of characters other than {}" \
                                 "\nList {} such lines or actions." \
                                 "\nEach line or action should be distinct." \
-                                "\nEach line or action should start with a number specifying its order."
+                                "\nEach line or action should start with a number specifying its order." \
+                                "\nEach line or action should be in a past tense form as if it already happened."
 
         self.story = "\nThe story so far was like this:" \
                      "\nRobin finally reached a forest."
+
         self.story_request_prompt = "\nWrite the next possible story in a sentence."\
                                      "\nThe story can be incomplete." \
                                      "\nThe story should cover only a single event." \
@@ -141,6 +142,7 @@ class StoryManager:
         while True:
             supporting_character_lines = self.create_supporting_character_lines(cur_event, character_from, character_to, event_turn)
             cur_event += "\n" + supporting_character_lines
+
             event_turn -= 1
             if event_turn == 0:
                 break
@@ -229,10 +231,11 @@ class StoryManager:
         return protagonist_choices
 
     def update_relationship(self, event, character_A, character_B):
-        characters_info = self.characters_info_format.format([character_A.to_dict(), character_B.to_dict(), character_A.describe_relationship(character_B)])
+
         event_prompt = "Event:" \
                        "\n{}".format(event)
-        user_prompt = event_prompt + characters_info + "\nWrite down the changed relationship between {} and {} after the event in {} sentences.".format(character_A.name, character_B.name, 3)
+        user_prompt = event_prompt + character_A.describe_relationship(character_B) + "\nWrite down the updated relationship between {} and {} after the event." \
+                                                                                      "\nLimit the number of sentences you use to {}".format(character_A.name, character_B.name, 3)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -247,11 +250,11 @@ class StoryManager:
 
 
     def update_companion(self, event, character_A, character_B):
-        characters_info = self.characters_info_format.format([character_A.to_dict(), character_B.to_dict(), character_A.describe_relationship(character_B)])
+
         event_prompt = "Event:" \
                        "\n{}".format(event)
-        user_prompt = event_prompt + characters_info + "\nWrite down the changed companion status between {} and {} after the event." \
-                                                       "\nIf they are companions, write 'YES', if not, write 'NO'.".format(character_A.name, character_B.name)
+        user_prompt = event_prompt + "\nWrite down the changed companion status between {} and {} after the event." \
+                                     "\nIf they are companions after the event, write 'YES', if not, write 'NO'.".format(character_A.name, character_B.name)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -268,9 +271,10 @@ class StoryManager:
 
         event_background_format = "Event:" \
                                    "\n{}" \
-                                   "\n{}'s Background:" \
+                                   "\n{}'s background:" \
                                    "\n{}".format(event, character.name, character.background)
-        user_prompt = event_background_format + "\nWrite down the changed background of {} after the event within {} sentences.".format(character.name, 3)
+        user_prompt = event_background_format + "\nWrite down the updated {}'s background after the event." \
+                                                "\nLimit the number of sentences you use to {}".format(character.name, 3)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -289,12 +293,13 @@ class StoryManager:
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Story:"
                                             "\n{}"
-                                            "\nSummarize the story in {} sentences".format(story, 20)}
+                                            "\nSummarize the story in {} sentences"
+                                            "\nYou can omit unimportant details to shoten the story.".format(story, 20)}
             ]
         )
         summary = response["choices"][0]["message"]["content"]
         self.story = "\nThe story so far was like this:" \
-                     +"\n" + summary
+                     "\n" + summary
         return summary
     def is_dead(self):
         pass

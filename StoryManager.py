@@ -158,12 +158,23 @@ class StoryManager:
 
 
         #relationship, companion, background update | event summaray
-
+        updated_relationship = self.update_relationship(cur_event, character_from, character_to)
+        print("updated_relationship")
+        print(updated_relationship)
+        updated_companion_status = self.update_companion(cur_event, character_from, character_to)
+        print("updated_companion_status")
+        print(updated_companion_status)
+        updated_background1 = self.update_background(cur_event, character_from)
+        updated_background2 = self.update_background(cur_event, character_to)
+        print("updated_background1")
+        print(updated_background1)
+        print("updated_background2")
+        print(updated_background2)
         story_summary = self.summarize(self.story + cur_event)
         print("story_summary")
         print(story_summary)
 
-        
+
 
     def create_supporting_character_lines(self, event, character_from, character_to, event_turn):
 
@@ -217,11 +228,11 @@ class StoryManager:
         print(protagonist_choices)
         return protagonist_choices
 
-    def create_updated_relationship(self, event, character_A, character_B):
+    def update_relationship(self, event, character_A, character_B):
         characters_info = self.characters_info_format.format([character_A.to_dict(), character_B.to_dict(), character_A.describe_relationship(character_B)])
         event_prompt = "Event:" \
                        "\n{}".format(event)
-        user_prompt = event_prompt + characters_info + "\nWrite the changed relationship between {} and {} after the event in {} sentences.".format(character_A.name, character_B.name, 3)
+        user_prompt = event_prompt + characters_info + "\nWrite down the changed relationship between {} and {} after the event in {} sentences.".format(character_A.name, character_B.name, 3)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -233,6 +244,43 @@ class StoryManager:
         character_A.relationships[character_B.name] = updated_relationship
         character_B.relationships[character_A.name] = updated_relationship
         return updated_relationship
+
+
+    def update_companion(self, event, character_A, character_B):
+        characters_info = self.characters_info_format.format([character_A.to_dict(), character_B.to_dict(), character_A.describe_relationship(character_B)])
+        event_prompt = "Event:" \
+                       "\n{}".format(event)
+        user_prompt = event_prompt + characters_info + "\nWrite down the changed companion status between {} and {} after the event." \
+                                                       "\nIf they are companions, write 'YES', if not, write 'NO'.".format(character_A.name, character_B.name)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": user_prompt}
+            ]
+        )
+        updated_companion_status = response["choices"][0]["message"]["content"]
+        character_A.companions[character_B.name] = updated_companion_status
+        character_B.companions[character_A.name] = updated_companion_status
+        return updated_companion_status
+
+    def update_background(self, event, character):
+
+        event_background_format = "Event:" \
+                                   "\n{}" \
+                                   "\n{}'s Background:" \
+                                   "\n{}".format(event, character.name, character.background)
+        user_prompt = event_background_format + "\nWrite down the changed background of {} after the event within {} sentences.".format(character.name, 3)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": user_prompt}
+            ]
+        )
+        changed_background = response["choices"][0]["message"]["content"]
+        character.background = changed_background
+        return changed_background
 
     def summarize(self, story):
         response = openai.ChatCompletion.create(

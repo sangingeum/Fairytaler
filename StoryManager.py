@@ -1,6 +1,4 @@
-import os
-import openai
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from openai_utils import *
 from ResourcePool import *
 import random
 import re
@@ -52,7 +50,7 @@ class StoryManager:
                                           "\nEach action should be distinct."
 
         self.character_commands_execution = "\nCommands:" \
-                                            "\nDescribe what {} would possibly do or say if he/she wants to '{}' after the event?" \
+                                            "\nDescribe what {} possibly does or says if he/she wants to '{}' after the event" \
                                             "\nFollow the writing style of the event." \
                                             "\nLimit the number of sentences you use to between 1 and 3."
 
@@ -102,21 +100,6 @@ class StoryManager:
         pass
     # story operations
 
-    def get_answer(self, system_prompt, user_prompt, return_token=False):
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user",
-                 "content": user_prompt}
-            ]
-        )
-        answer = response["choices"][0]["message"]["content"]
-        if return_token:
-            token_used = response['usage']['total_tokens']
-            return answer, token_used
-        return answer
-
     def tell_story(self):
 
         if random.uniform(0, 1) < self.event_prob:
@@ -135,7 +118,7 @@ class StoryManager:
                 [self.protagonist.to_dict(), sampled_character.to_dict()])
             user_prompt = self.story + characters_info + self.protagonist.describe_relationship(sampled_character)\
                           + self.story_request_prompt + self.character_constraints
-            next_story = self.get_answer(system_prompt, user_prompt)
+            next_story = get_answer(system_prompt, user_prompt)
 
             print(next_story)
 
@@ -147,7 +130,7 @@ class StoryManager:
 
             system_prompt = self.writer_prompt
             user_prompt = self.story + self.character_constraints + self.story_request_prompt
-            next_story = self.get_answer(system_prompt, user_prompt)
+            next_story = get_answer(system_prompt, user_prompt)
             print(next_story)
 
 
@@ -207,7 +190,7 @@ class StoryManager:
         characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict()])
         user_prompt = self.story + self.event.format(event) + characters_info + character_from.describe_relationship(character_to) + self.character_constraints + event_commands
 
-        supporting_character_lines = self.get_answer(system_prompt, user_prompt)
+        supporting_character_lines = get_answer(system_prompt, user_prompt)
 
         print("/prompts")
         print(system_prompt)
@@ -225,7 +208,7 @@ class StoryManager:
         user_prompt = self.story + self.event.format(event) + characters_info \
                       + character_from.describe_relationship(character_to) + self.character_constraints \
                       + self.character_commands_execution.format(character_from.name, selected_choice)
-        action = self.get_answer(system_prompt, user_prompt)
+        action = get_answer(system_prompt, user_prompt)
         print("/prompts")
         print(system_prompt)
         print(user_prompt)
@@ -241,7 +224,7 @@ class StoryManager:
         user_prompt = self.story + self.event.format(event) + characters_info \
                       + character_from.describe_relationship(character_to) + self.character_constraints \
                       + self.character_commands_choices.format(choice_num, character_from.name, 6)
-        unparsed_choices = self.get_answer(system_prompt, user_prompt)
+        unparsed_choices = get_answer(system_prompt, user_prompt)
         print("/prompts")
         print(system_prompt)
         print(user_prompt)
@@ -265,7 +248,7 @@ class StoryManager:
                                                                                                                                                               character_A.name, character_A.name, character_B.name,
                                                                                                                                                               character_B.name, character_B.name, character_A.name,
                                                                                                                                                               3)
-        updated_relationship = self.get_answer(system_prompt, user_prompt)
+        updated_relationship = get_answer(system_prompt, user_prompt)
         character_A.relationships[character_B.name] = updated_relationship
         character_B.relationships[character_A.name] = updated_relationship
         return updated_relationship
@@ -275,10 +258,19 @@ class StoryManager:
         system_prompt = self.assistant_prompt
         event_prompt = "Story:" \
                        "\n{}".format(event)
-        user_prompt = event_prompt + "\nIs {} with {} currently? Answer in 'YES' or 'NO'".format(character_A.name, character_B.name)
-        updated_companion_status = self.get_answer(system_prompt, user_prompt)
+        user_prompt = event_prompt + "\nIs {} with {} currently? Answer in 'YES' or 'NO'" \
+                                     "\nIf there is no explicit separation between them, answer with YES.".format(character_A.name, character_B.name)
+
+        updated_companion_status = get_answer(system_prompt, user_prompt).lower()
+
+        if updated_companion_status == "no":
+            updated_companion_status = "Not Together"
+        else:
+            updated_companion_status = "Together"
+
         character_A.companions[character_B.name] = updated_companion_status
         character_B.companions[character_A.name] = updated_companion_status
+
         return updated_companion_status
 
     def update_background(self, event, character):
@@ -288,18 +280,19 @@ class StoryManager:
                                    "\n{}'s background:" \
                                    "\n{}".format(event, character.name, character.background)
         user_prompt = event_background_format + "\nUpdate {}'s background considering the event." \
-                                                "\nLimit the number of sentences you use to {}".format(character.name, 3)
-        changed_background = self.get_answer(system_prompt, user_prompt)
+                                                "\nLimit the number of sentences you use to between 1 and {}".format(character.name, 3)
+        changed_background = get_answer(system_prompt, user_prompt)
         character.background = changed_background
         return changed_background
 
     def update_story(self, event):
         system_prompt = self.assistant_prompt
         user_prompt = "\n{}"\
-                      "\nSummarize the story in {} sentences"\
-                      "\nYou can omit unimportant details to shoten the story.".format(self.story + event, 20)
+                      "\nSummarize the story within {} sentences."\
+                      "\nYou can omit unimportant details to shoten the story." \
+                      "\nIf think you don't need to edit the story, leave it as it is.".format(self.story + event, 20)
 
-        summary = self.get_answer(system_prompt, user_prompt)
+        summary = get_answer(system_prompt, user_prompt)
         self.story = "\nThe story so far was like this:" \
                      "\n" + summary
         return summary

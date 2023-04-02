@@ -1,8 +1,7 @@
 from Character import *
 import random
-from Item import *
 import json
-
+from openai_utils import *
 
 class ResourcePool:
     def __init__(self):
@@ -58,22 +57,18 @@ class ResourcePool:
         personality = random.choice(self.personalities)
         race = random.choice(self.races)
         gender = "male" if random.uniform(0, 1) < 0.5 else "female"
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content":
-                            "Recommend me a name for this character."
-                            "\nCharacter information:"
-                            #"\nitme: {}" # don't make it affect the name.
-                            "\nbackground: {}"
-                            "\npersonality: {}"
-                            "\nrace: {}"
-                            "\nYou don't need to explain why you wrote the name."
-                            "\nAnswer in a word.".format(item, background, personality, race)}
-            ]
-        )
-        name = response["choices"][0]["message"]["content"].replace(".", "")
+
+        system_prompt = "You are a helpful assistant."
+        user_prompt = "Recommend me a name for this character."\
+                        "\nCharacter information:"\
+                        "\nbackground: {}"\
+                        "\npersonality: {}"\
+                        "\nrace: {}" \
+                        "\ngender: {}"\
+                        "\nYou don't need to explain why you wrote the name."\
+                        "\nAnswer in a word.".format(background, personality, race, gender)
+
+        name = get_answer(system_prompt=system_prompt, user_prompt=user_prompt).replace(".", "")
         character = Character(name, id, {}, {}, [item], background, personality, race, gender)
         self.characters.append(character)
         #print(character.to_dict())

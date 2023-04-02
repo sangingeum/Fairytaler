@@ -1,7 +1,5 @@
-import os
-import openai
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
+from openai_utils import *
 class Character:
     def __init__(self, name, id, relationships, companions, items, background, personality, race, gender):
         self.name = name
@@ -21,27 +19,22 @@ class Character:
         if (not self.changed) and (self.description is not None):
             return self.description
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Summarize information about me."
-                                            "\nname:{}"
-                                            "\nrelationships:{}"
-                                            "\ncompanions:{}"
-                                            "\nitems:{}"
-                                            "\nbackground:{}"
-                                            "\npersonality:{}"
-                                            "\nrace:{}"
+        system_prompt = "You are a helpful assistant."
+        user_prompt = "Summarize information about me."\
+                                            "\nname:{}"\
+                                            "\nrelationships:{}"\
+                                            "\ncompanions:{}"\
+                                            "\nitems:{}"\
+                                            "\nbackground:{}"\
+                                            "\npersonality:{}"\
+                                            "\nrace:{}"\
                                             "\ngender:{}".format(self.name, self.relationships,
                                                                self.companions,
                                                                self.items, self.background,
                                                                self.personality, self.race,
                                                                  self.gender)
-                }
-            ]
-        )
-        summary = response["choices"][0]["message"]["content"]
+
+        summary = get_answer(system_prompt, user_prompt)
         self.description = summary
         return summary
 

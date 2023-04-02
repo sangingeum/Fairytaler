@@ -3,7 +3,7 @@ import os
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-def get_answer(self, system_prompt, user_prompt, return_token=False):
+def get_answer(system_prompt, user_prompt, return_token=False):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[

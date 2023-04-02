@@ -5,65 +5,80 @@ from ResourcePool import *
 import random
 import re
 
-# to do:
+# TODOS:
 # equipment, item system 구현
 # companion 고려한 야야기, 이벤트 생성
 # 처음 보는 사이인데 마치 아는 사이인 것처럼 행동하는 경우가 있다. 고치자.
 # 종족 고려하여 인물 성별 자동 설정하는 기능(기본, 종족별..)
-#
+# companion describe function
+# openai 부분 따로 분리
+# complete the event 방식으로 가야하지 않을까
+
 # 선택지 고민: 행동이나 대사를 직접 선택하게 하지 말고 행동이나 대사의 주제를 정해주면 속 내용은 알아서 채워지게..
 # 예를 들어, [도망] [공격] [대화] 이러한 선택지가 나오고 플레이어는 이 중에서 선택하면 되는 방식으로
 
 
+
 class StoryManager:
     def __init__(self):
-        self.story_teller = "You are a story writer who writes an interesting fantasy story." \
-                            "\nYour story can be a bit cruel for the sake of realism." \
+        self.writer_prompt = "You are a story writer who writes an interesting fantasy story." \
+                            "\nYour story can be a bit violent for the sake of realism." \
                             "\nYour job is to write an engaging story full of adventures and events."
 
-        self.event_teller = "\nEvent: {}" \
-                            "\nYou describe what characters do or say after this event." \
-                            "\nYou also describe what happens as a result of actions taken in this event." \
-                            "\nDo not include {}'s action, thought, or line" \
-                            "\nThe description can be incomplete." \
-                            "\nLimit the number of sentences you use to between 1 and 2."
+        self.assistant_prompt = "You are a helpful assistant."
 
-        self.event_terminator = "\nEvent: {}" \
-                                "\nYou describe what characters do or say after this event." \
-                                "\nYou also describe what happens as a result of actions taken in this event." \
-                                "\nEnd the story using {} sentences at most."
-
-        self.character_teller = "\nEvent: {}" \
-                                "\nDescribe what {} possibly does or says after the event." \
-                                "\nDo not describe consequences of {}'s action." \
-                                "\nDo not describe actions or reactions from other characters." \
-                                "\nList {} different descriptions." \
-                                "\nEach description should be distinct." \
-                                "\nEach description should start with a number specifying its order."
-
-        self.story = "\nThe story so far was like this:" \
+        self.story = "\nStory:" \
                      "\nRobin finally reached a forest."
 
-        self.story_request_prompt = "\nWrite the next possible story in a sentence."\
-                                     "\nThe story can be incomplete." \
-                                     "\nThe story should cover only a single event." \
-                                     "\nDo not add any character in the story." \
-                                     "\nDo not add any place in the story."
+        self.event = "\nEvent:" \
+                     "\n{}"
 
-        self.character_constraints = "\nCharacter constraints:" \
+        self.event_commands_continue = "\nCommands:" \
+                                       "\nDescribe what characters do or say after the event." \
+                                       "\nYou can also describe the consequences of the actions taken in the event." \
+                                       "\nDo not include {}'s action, thought, or line" \
+                                       "\nLimit the number of sentences you use to between 1 and 2."
+
+        self.event_commands_terminate = "\nCommands:" \
+                                        "\nYou describe what characters do or say after this event." \
+                                        "\nYou also describe what happens as a result of actions taken in this event." \
+                                        "\nEnd the story using {} sentences at most."
+
+        self.character_commands_choices = "\nCommands:" \
+                                          "\nList {} actions that {} possibly do after the event." \
+                                          "\nEach action should be expressed within {} words." \
+                                          "\nExamples of actions are 'Attack [target's name]', 'Talk to [target's name] about [topic]', and 'Steal [item name] from [target's name]'." \
+                                          "\nEach action should start with a number specifying its order." \
+                                          "\nEach action should be distinct."
+
+        self.character_commands_execution = "\nCommands:" \
+                                            "\nDescribe what {} would possibly do or say if he/she wants to '{}' after the event?" \
+                                            "\nFollow the writing style of the event." \
+                                            "\nLimit the number of sentences you use to between 1 and 3."
+
+        self.writer_commands_continue = "\nWrite the next possible story in a sentence."\
+                                         "\nThe story can be incomplete." \
+                                         "\nThe story should cover only a single event." \
+                                         "\nDo not add any character in the story." \
+                                         "\nDo not add any place in the story."
+
+        self.character_constraints = "\nConstraints:" \
                                      "\nCharacters in this story don't know each other's name, personality, background or items unless they are told or see." \
                                      "\nIt is common that characters don't easily trust each other." \
                                      "\nCharacters do not cooperate until they know each other." \
                                      "\nIf a character's compainons variable is empty, it means the character is currently alone."
+
         self.characters_info_format = "\nInformation about characters:" \
                                       "\n{}"
 
-        self.event_request_with_conditions_choices = "\nWrite {} possible lines you would say to {}." \
-                                                     "\nWrite {} possible actions you would take in this situation."
+        self.story_request_prompt = "\nWrite the next possible story in a sentences." \
+                                    "\nThe story can be incomplete." \
+                                    "\nThe story should cover only a single event." \
+                                    "\nDo not add any character in the story." \
+                                    "\nDo not add any place in the story."
 
-        self.event_request_with_conditions_single_choice = "\n{} possible lines you would say to {}." \
 
-        self.event_request_with_conditions = ""
+
         self.resource_pool = ResourcePool()
         self.resource_pool.load_resource()
         self.protagonist = self.resource_pool.characters[0]
@@ -109,14 +124,17 @@ class StoryManager:
             # event
             if len(self.resource_pool.characters) < 2:
                 self.resource_pool.create_character()
-            sampled_characters = random.sample(self.resource_pool.characters, 2)
-            sampled_character = sampled_characters[0] if sampled_characters[0] != self.protagonist else sampled_characters[1]
+            sampled_character = random.sample(self.resource_pool.characters[1:], k=1)[0]
+
             print(self.protagonist.to_dict())
             print(sampled_character.to_dict())
 
-            characters_info = self.characters_info_format.format([self.protagonist.to_dict(), sampled_character.to_dict()])
-            system_prompt = self.story_teller
-            user_prompt = self.story + self.character_constraints + characters_info + self.story_request_prompt
+            system_prompt = self.writer_prompt
+
+            characters_info = self.characters_info_format.format(
+                [self.protagonist.to_dict(), sampled_character.to_dict()])
+            user_prompt = self.story + characters_info + self.protagonist.describe_relationship(sampled_character)\
+                          + self.story_request_prompt + self.character_constraints
             next_story = self.get_answer(system_prompt, user_prompt)
 
             print(next_story)
@@ -127,14 +145,14 @@ class StoryManager:
             print("non event")
             print(self.protagonist.to_dict())
 
-            system_prompt = self.story_teller
+            system_prompt = self.writer_prompt
             user_prompt = self.story + self.character_constraints + self.story_request_prompt
             next_story = self.get_answer(system_prompt, user_prompt)
             print(next_story)
 
 
     def tell_event(self, next_story, character_from, character_to):
-        choice_num = 3
+        choice_num = 5
         event_turn = random.randint(3, 5)
         cur_event = next_story
 
@@ -145,17 +163,17 @@ class StoryManager:
             event_turn -= 1
             if event_turn == 0:
                 break
-            choices = self.create_protagonist_choices(choice_num, cur_event, character_from, character_to)
 
-            print("Enter a number between 0 and {}".format(choice_num - 1))
-            n = int(input())
-            while n < 0 and n >= choice_num:
-                print("(RE) Enter a number between 0 and {}".format(choice_num - 1))
-                n = int(input())
-            choice = choices[n]
+            choices = self.create_choice(choice_num, cur_event, character_from, character_to)
+            selected_choice = self.select_choice(choices, choice_num)
             print()
-            print(choice)
-            cur_event += "\n" + choice
+            print(selected_choice)
+
+            action = self.execute_choice(selected_choice, cur_event, character_from, character_to)
+            print()
+            print(action)
+
+            cur_event += "\n" + action
 
 
         #relationship, companion, background update | event summaray
@@ -180,13 +198,14 @@ class StoryManager:
     def create_supporting_character_lines(self, event, character_from, character_to, event_turn):
 
         if event_turn <= 1:
-            event_teller = self.event_terminator.format(event, 4)
+            event_commands = self.event_commands_terminate.format(4)
         else:
-            event_teller = self.event_teller.format(event, character_from.name)
+            event_commands = self.event_commands_continue.format(character_from.name)
 
-        characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict(), character_from.describe_relationship(character_to)])
-        system_prompt = self.story_teller
-        user_prompt = self.story + self.character_constraints + characters_info + event_teller
+        system_prompt = self.writer_prompt
+
+        characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict()])
+        user_prompt = self.story + self.event.format(event) + characters_info + character_from.describe_relationship(character_to) + self.character_constraints + event_commands
 
         supporting_character_lines = self.get_answer(system_prompt, user_prompt)
 
@@ -200,25 +219,42 @@ class StoryManager:
         return supporting_character_lines
 
 
-    def create_protagonist_choices(self, choice_num, event, character_from, character_to):
-        #event_teller = self.event_teller.format(next_story, character_from.name)
-        character_teller = self.character_teller.format(event, character_from.name, character_from.name, character_from.name, choice_num)
-        characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict(), character_from.describe_relationship(character_to)])
-        system_prompt = self.story_teller
-        user_prompt = self.story + self.character_constraints + characters_info + character_teller
-        unparsed_protagonist_choices = self.get_answer(system_prompt, user_prompt)
+    def execute_choice(self, selected_choice, event, character_from, character_to):
+        system_prompt = self.writer_prompt
+        characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict()])
+        user_prompt = self.story + self.event.format(event) + characters_info \
+                      + character_from.describe_relationship(character_to) + self.character_constraints \
+                      + self.character_commands_execution.format(character_from.name, selected_choice)
+        action = self.get_answer(system_prompt, user_prompt)
         print("/prompts")
         print(system_prompt)
         print(user_prompt)
         print("prompts/")
-        protagonist_choices = re.findall(r'[0-9]+\.\s(.*?)\n', unparsed_protagonist_choices + "\n\n")
-        print(unparsed_protagonist_choices)
+
+        print(action)
+
+        return action
+
+    def create_choice(self, choice_num, event, character_from, character_to):
+        system_prompt = self.assistant_prompt
+        characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict()])
+        user_prompt = self.story + self.event.format(event) + characters_info \
+                      + character_from.describe_relationship(character_to) + self.character_constraints \
+                      + self.character_commands_choices.format(choice_num, character_from.name, 6)
+        unparsed_choices = self.get_answer(system_prompt, user_prompt)
+        print("/prompts")
+        print(system_prompt)
+        print(user_prompt)
+        print("prompts/")
+        unparsed_choices = re.findall(r'[0-9]+\.\s(.*?)\n', unparsed_choices + "\n\n")
+        print(unparsed_choices)
         print()
-        print(protagonist_choices)
-        return protagonist_choices
+        print(unparsed_choices)
+        return unparsed_choices
+
 
     def update_relationship(self, event, character_A, character_B):
-        system_prompt = "You are a helpful assistant."
+        system_prompt = self.assistant_prompt
         event_prompt = "Event:" \
                        "\n{}".format(event)
         user_prompt = event_prompt + character_A.describe_relationship(character_B) + "\nWrite down the updated opinion of {} on {} and vise versa." \
@@ -236,7 +272,7 @@ class StoryManager:
 
 
     def update_companion(self, event, character_A, character_B):
-        system_prompt = "You are a helpful assistant."
+        system_prompt = self.assistant_prompt
         event_prompt = "Story:" \
                        "\n{}".format(event)
         user_prompt = event_prompt + "\nIs {} with {} currently? Answer in 'YES' or 'NO'".format(character_A.name, character_B.name)
@@ -246,7 +282,7 @@ class StoryManager:
         return updated_companion_status
 
     def update_background(self, event, character):
-        system_prompt = "You are a helpful assistant."
+        system_prompt = self.assistant_prompt
         event_background_format = "Event:" \
                                    "\n{}" \
                                    "\n{}'s background:" \
@@ -258,7 +294,7 @@ class StoryManager:
         return changed_background
 
     def update_story(self, event):
-        system_prompt = "You are a helpful assistant."
+        system_prompt = self.assistant_prompt
         user_prompt = "\n{}"\
                       "\nSummarize the story in {} sentences"\
                       "\nYou can omit unimportant details to shoten the story.".format(self.story + event, 20)
@@ -267,6 +303,23 @@ class StoryManager:
         self.story = "\nThe story so far was like this:" \
                      "\n" + summary
         return summary
+
+
+    def select_choice(self, choices, choice_num):
+        n = self.select_number(choice_num)
+        if n == -1:
+            print("Enter your own choice")
+            selected_choice = str(input())
+        else:
+            selected_choice = choices[n]
+        return selected_choice
+    def select_number(self, choice_num):
+        print("Enter a number between 0 and {}. Enter -1 to make your own choice.".format(choice_num - 1))
+        n = int(input())
+        while n < -1 and n >= choice_num:
+            print("(RE) Enter a number between 0 and {}".format(choice_num - 1))
+            n = int(input())
+        return n
     def is_dead(self):
         pass
 

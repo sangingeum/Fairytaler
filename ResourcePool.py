@@ -27,7 +27,8 @@ class ResourcePool:
                                      character_data["items"],
                                      character_data["background"],
                                      character_data["personality"],
-                                     character_data["race"]
+                                     character_data["race"],
+                                     character_data["gender"]
                                      )
                            for id, character_data in enumerate(data_from_file[self.field_names[0]])]
         self.items = data_from_file[self.field_names[1]]
@@ -56,7 +57,7 @@ class ResourcePool:
         background = random.choice(self.backgrounds)
         personality = random.choice(self.personalities)
         race = random.choice(self.races)
-
+        gender = "male" if random.uniform(0, 1) < 0.5 else "female"
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -73,7 +74,7 @@ class ResourcePool:
             ]
         )
         name = response["choices"][0]["message"]["content"].replace(".", "")
-        character = Character(name, id, {}, {}, [item], background, personality, race)
+        character = Character(name, id, {}, {}, [item], background, personality, race, gender)
         self.characters.append(character)
         #print(character.to_dict())
 

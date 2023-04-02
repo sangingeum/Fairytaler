@@ -8,6 +8,12 @@ import re
 # to do:
 # equipment, item system 구현
 # companion 고려한 야야기, 이벤트 생성
+# 처음 보는 사이인데 마치 아는 사이인 것처럼 행동하는 경우가 있다. 고치자.
+# 종족 고려하여 인물 성별 자동 설정하는 기능(기본, 종족별..)
+#
+# 선택지 고민: 행동이나 대사를 직접 선택하게 하지 말고 행동이나 대사의 주제를 정해주면 속 내용은 알아서 채워지게..
+# 예를 들어, [도망] [공격] [대화] 이러한 선택지가 나오고 플레이어는 이 중에서 선택하면 되는 방식으로
+
 
 class StoryManager:
     def __init__(self):
@@ -25,29 +31,15 @@ class StoryManager:
         self.event_terminator = "\nEvent: {}" \
                                 "\nYou describe what characters do or say after this event." \
                                 "\nYou also describe what happens as a result of actions taken in this event." \
-                                "\nThe description should be complete." \
-                                "\nEnd the event using {} sentences at most."
-        """
-                self.character_teller = "\nEvent: {}" \
-                                        "\nDescribe what {} possibly does or says after the event." \
-                                        "\nDo not describe the consequences of {}'s action." \
-                                        "\nList {} such lines or actions." \
-                                        "\nEach line or action should be distinct." \
-                                        "\nEach line or action should start with a number specifying its order."
-        Robin could confront Zephyr and demand an explanation for the presence of the poisoned dagger.
-        Robin confronted Zephyr and demanded an explanation for the presence of the poisoned dagger.
-        
-        
-                "\nIf a character's relationships variable doesn't contain the other character's name, it means they haven't met before." \
-        """
+                                "\nEnd the story using {} sentences at most."
+
         self.character_teller = "\nEvent: {}" \
                                 "\nDescribe what {} possibly does or says after the event." \
-                                "\nDo not describe the consequences of {}'s action." \
-                                "\nDo not describe any actions of characters other than {}" \
-                                "\nList {} such lines or actions." \
-                                "\nEach line or action should be distinct." \
-                                "\nEach line or action should start with a number specifying its order." \
-                                "\nEach line or action should be in a past tense form as if it already happened."
+                                "\nDo not describe consequences of {}'s action." \
+                                "\nDo not describe actions or reactions from other characters." \
+                                "\nList {} different descriptions." \
+                                "\nEach description should be distinct." \
+                                "\nEach description should start with a number specifying its order."
 
         self.story = "\nThe story so far was like this:" \
                      "\nRobin finally reached a forest."
@@ -76,6 +68,9 @@ class StoryManager:
         self.resource_pool.load_resource()
         self.protagonist = self.resource_pool.characters[0]
         self.event_prob = 1
+
+
+
     # basic operations
     def save(self, path):
         pass
@@ -91,8 +86,23 @@ class StoryManager:
     def init(self):
         pass
     # story operations
-    def tell_story(self):
 
+    def get_answer(self, system_prompt, user_prompt, return_token=False):
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",
+                 "content": user_prompt}
+            ]
+        )
+        answer = response["choices"][0]["message"]["content"]
+        if return_token:
+            token_used = response['usage']['total_tokens']
+            return answer, token_used
+        return answer
+
+    def tell_story(self):
 
         if random.uniform(0, 1) < self.event_prob:
             print("event")
@@ -105,39 +115,28 @@ class StoryManager:
             print(sampled_character.to_dict())
 
             characters_info = self.characters_info_format.format([self.protagonist.to_dict(), sampled_character.to_dict()])
+            system_prompt = self.story_teller
+            user_prompt = self.story + self.character_constraints + characters_info + self.story_request_prompt
+            next_story = self.get_answer(system_prompt, user_prompt)
 
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": self.story_teller},
-                    {"role": "user", "content":  self.story + self.character_constraints + characters_info + self.story_request_prompt}
-                ]
-            )
-            next_story = response["choices"][0]["message"]["content"]
             print(next_story)
-            print(response['usage']['total_tokens'])
+
             self.tell_event(next_story, self.protagonist, sampled_character)
 
         else:
             print("non event")
             print(self.protagonist.to_dict())
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": self.story_teller},
-                    {"role": "user", "content": self.story + self.character_constraints + self.story_request_prompt}
-                ]
-            )
-            next_story = response["choices"][0]["message"]["content"]
+
+            system_prompt = self.story_teller
+            user_prompt = self.story + self.character_constraints + self.story_request_prompt
+            next_story = self.get_answer(system_prompt, user_prompt)
             print(next_story)
-            print(response['usage']['total_tokens'])
 
 
     def tell_event(self, next_story, character_from, character_to):
         choice_num = 3
         event_turn = random.randint(3, 5)
         cur_event = next_story
-
 
         while True:
             supporting_character_lines = self.create_supporting_character_lines(cur_event, character_from, character_to, event_turn)
@@ -188,18 +187,13 @@ class StoryManager:
         characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict(), character_from.describe_relationship(character_to)])
         system_prompt = self.story_teller
         user_prompt = self.story + self.character_constraints + characters_info + event_teller
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
+
+        supporting_character_lines = self.get_answer(system_prompt, user_prompt)
+
         print("/prompts")
         print(system_prompt)
         print(user_prompt)
         print("prompts/")
-        supporting_character_lines = response["choices"][0]["message"]["content"]
         print()
         print(supporting_character_lines)
 
@@ -212,18 +206,11 @@ class StoryManager:
         characters_info = self.characters_info_format.format([character_from.to_dict(), character_to.to_dict(), character_from.describe_relationship(character_to)])
         system_prompt = self.story_teller
         user_prompt = self.story + self.character_constraints + characters_info + character_teller
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
+        unparsed_protagonist_choices = self.get_answer(system_prompt, user_prompt)
         print("/prompts")
         print(system_prompt)
         print(user_prompt)
         print("prompts/")
-        unparsed_protagonist_choices = response["choices"][0]["message"]["content"]
         protagonist_choices = re.findall(r'[0-9]+\.\s(.*?)\n', unparsed_protagonist_choices + "\n\n")
         print(unparsed_protagonist_choices)
         print()
@@ -231,72 +218,52 @@ class StoryManager:
         return protagonist_choices
 
     def update_relationship(self, event, character_A, character_B):
-
+        system_prompt = "You are a helpful assistant."
         event_prompt = "Event:" \
                        "\n{}".format(event)
-        user_prompt = event_prompt + character_A.describe_relationship(character_B) + "\nWrite down the updated relationship between {} and {} after the event." \
-                                                                                      "\nLimit the number of sentences you use to {}".format(character_A.name, character_B.name, 3)
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
-        updated_relationship = response["choices"][0]["message"]["content"]
+        user_prompt = event_prompt + character_A.describe_relationship(character_B) + "\nWrite down the updated opinion of {} on {} and vise versa." \
+                                                                                      "\nFollow this format:" \
+                                                                                      "\n{}: [{}'s opinion on {}]" \
+                                                                                      "\n{}: [{}'s opinion on {}]" \
+                                                                                      "\nLimit the number of sentences you use for each opinion to {}".format(character_A.name, character_B.name,
+                                                                                                                                                              character_A.name, character_A.name, character_B.name,
+                                                                                                                                                              character_B.name, character_B.name, character_A.name,
+                                                                                                                                                              3)
+        updated_relationship = self.get_answer(system_prompt, user_prompt)
         character_A.relationships[character_B.name] = updated_relationship
         character_B.relationships[character_A.name] = updated_relationship
         return updated_relationship
 
 
     def update_companion(self, event, character_A, character_B):
-
-        event_prompt = "Event:" \
+        system_prompt = "You are a helpful assistant."
+        event_prompt = "Story:" \
                        "\n{}".format(event)
-        user_prompt = event_prompt + "\nWrite down the changed companion status between {} and {} after the event." \
-                                     "\nIf they are companions after the event, write 'YES', if not, write 'NO'.".format(character_A.name, character_B.name)
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
-        updated_companion_status = response["choices"][0]["message"]["content"]
+        user_prompt = event_prompt + "\nIs {} with {} currently? Answer in 'YES' or 'NO'".format(character_A.name, character_B.name)
+        updated_companion_status = self.get_answer(system_prompt, user_prompt)
         character_A.companions[character_B.name] = updated_companion_status
         character_B.companions[character_A.name] = updated_companion_status
         return updated_companion_status
 
     def update_background(self, event, character):
-
+        system_prompt = "You are a helpful assistant."
         event_background_format = "Event:" \
                                    "\n{}" \
                                    "\n{}'s background:" \
                                    "\n{}".format(event, character.name, character.background)
-        user_prompt = event_background_format + "\nWrite down the updated {}'s background after the event." \
+        user_prompt = event_background_format + "\nUpdate {}'s background considering the event." \
                                                 "\nLimit the number of sentences you use to {}".format(character.name, 3)
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
-        changed_background = response["choices"][0]["message"]["content"]
+        changed_background = self.get_answer(system_prompt, user_prompt)
         character.background = changed_background
         return changed_background
 
     def update_story(self, event):
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "\n{}"
-                                            "\nSummarize the story in {} sentences"
-                                            "\nYou can omit unimportant details to shoten the story.".format(self.story + event, 20)}
-            ]
-        )
-        summary = response["choices"][0]["message"]["content"]
+        system_prompt = "You are a helpful assistant."
+        user_prompt = "\n{}"\
+                      "\nSummarize the story in {} sentences"\
+                      "\nYou can omit unimportant details to shoten the story.".format(self.story + event, 20)
+
+        summary = self.get_answer(system_prompt, user_prompt)
         self.story = "\nThe story so far was like this:" \
                      "\n" + summary
         return summary

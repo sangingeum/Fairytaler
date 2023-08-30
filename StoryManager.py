@@ -116,6 +116,8 @@ class StoryManager:
         pass
 
     def start(self):
+        if self.protagonist is None:
+            self.init()
         self.tell_story()
 
 
@@ -123,13 +125,12 @@ class StoryManager:
         pass
 
     def ask_and_confirm(self, question):
-        user_input = ""
         while True:
-            if self.protagonist is None:
-                user_input = input(question + "\n")
+            user_input = input(question + "\n")
             yes_or_no = input("Do you want to change your answer? (y/n):")
             if yes_or_no.lower() == "y":
                 continue
+            break
         return user_input
 
     def init(self):
@@ -146,12 +147,16 @@ class StoryManager:
         # Set the protagonist background
         background = self.ask_and_confirm("Describe the background of the protagonist.")
         # Create an equipable item
+        print("We will give you an equipment as a gift.")
         item = self.resource_pool.create_equipable_item("Create an equipable item from the D&D universe considering that the player is (a/an)"+ race + "and the universe the player is in is like this: "+ universe+".")
+        print("You received a(an) {}, which can be put on your {}. {}".format(item["name"], item["slot"], item["description"]))
+
         # Create the protagonist
-        character = Character(name=name, id=0, relationships=[], companions=[], consumables=[],
+        character = Character(name=name, id=0, relationships=[], companions=[], consumables=[], equipments=[],
                   equipments_in_use={item["slot"]: item}, background=background, personality=personality, race=race,
                   gender=gender)
         self.protagonist = character
+
 
 
     def tell_story(self):

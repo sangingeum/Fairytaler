@@ -15,7 +15,36 @@ import re
 # 선택지 고민: 행동이나 대사를 직접 선택하게 하지 말고 행동이나 대사의 주제를 정해주면 속 내용은 알아서 채워지게..
 # 예를 들어, [도망] [공격] [대화] 이러한 선택지가 나오고 플레이어는 이 중에서 선택하면 되는 방식으로
 
+"""
+게임 시작
+1. 세계관 설정, 주인공 이름과 성별, 종족, 성격, 배경 설정
+2. AI가 세계 묘사(그림, 텍스트)
+3. 캐릭터 장비 확인
+4. 캐릭터 초상화 생성
 
+이야기 시작
+
+이야기 묘사(그림, 텍스트) + 랜덤으로 아이템 추가/삭제 이벤트
+{1} 묘사가 끝나면 플레이어 선택지 표시, 선택
+선택지: [AI가 생성한 선택지], [사용자 지정 선택지], [아이템 사용], [저장], [로드], [종료]
+-[AI가 생성한 선택지]: GPT가 현재 상황을 고려하여 선택지 생성
+-- 주의: 가지고 있지 않은 아이템의 사용 금지, 디버프와 버프 고려
+-[사용자 지정 선택지]: 사용자가 직접 선택지를 적어서 이야기를 진행함, 사용횟수가 무제한이 아님
+-[아이템 사용]: 캐릭터의 인벤토리 리스트 표시, 숫자 입력으로 사용
+-- 장비 아이템/소모품 차이 고려
+-[저장]: save 폴더에 저장. 자동, 수동 파일 이름 설정. 이름 겹치면 덮어 씌울지 결정
+-[로드]: save 폴더 스캔해서 불러올 수 있는 파일 표시. 사용자가 선택하면 불러와짐
+-[종료]: 게임 종료
+
+선택지 선택 후:
+[주사위 굴림]-> [성공/실패 결정]-> [결과 묘사(그림, 텍스트)]
+{1}로 이동, 반복...
+
+---------
+캐릭터 클래스
+
+아이템 클래스
+"""
 
 class StoryManager:
     def __init__(self):
@@ -75,14 +104,10 @@ class StoryManager:
                                     "\nDo not add any character in the story." \
                                     "\nDo not add any place in the story."
 
-
-
         self.resource_pool = ResourcePool()
         self.resource_pool.load_resource()
-        self.protagonist = self.resource_pool.characters[0]
+        self.protagonist = None
         self.event_prob = 1
-
-
 
     # basic operations
     def save(self, path):
@@ -96,42 +121,41 @@ class StoryManager:
 
     def end(self):
         pass
+
+    def ask_and_confirm(self, question):
+        user_input = ""
+        while True:
+            if self.protagonist is None:
+                user_input = input(question + "\n")
+            yes_or_no = input("Do you want to change your answer? (y/n):")
+            if yes_or_no.lower() == "y":
+                continue
+        return user_input
+
     def init(self):
-        pass
-    # story operations
+        # Set the universe
+        universe = self.ask_and_confirm("Describe the fictional universe you want to explore.")
+        # Set the protagonist name
+        name = self.ask_and_confirm("Write the name of the protagonist.")
+        # Set the protagonist gender
+        gender = self.ask_and_confirm("Write the gender of the protagonist. (male/female)")
+        # Set the protagonist race
+        race = self.ask_and_confirm("What is the race of the protagonist?")
+        # Set the protagonist personality
+        personality = self.ask_and_confirm("Describe the personality of the protagonist.")
+        # Set the protagonist background
+        background = self.ask_and_confirm("Describe the background of the protagonist.")
+        # Create an equipable item
+        item = self.resource_pool.create_equipable_item("Create an equipable item from the D&D universe considering that the player is (a/an)"+ race + "and the universe the player is in is like this: "+ universe+".")
+        # Create the protagonist
+        character = Character(name=name, id=0, relationships=[], companions=[], consumables=[],
+                  equipments_in_use={item["slot"]: item}, background=background, personality=personality, race=race,
+                  gender=gender)
+        self.protagonist = character
+
 
     def tell_story(self):
-
-        if random.uniform(0, 1) < self.event_prob:
-            print("event")
-            # event
-            if len(self.resource_pool.characters) < 2:
-                self.resource_pool.create_character()
-            sampled_character = random.sample(self.resource_pool.characters[1:], k=1)[0]
-
-            print(self.protagonist.to_dict())
-            print(sampled_character.to_dict())
-
-            system_prompt = self.writer_prompt
-
-            characters_info = self.characters_info_format.format(
-                [self.protagonist.to_dict(), sampled_character.to_dict()])
-            user_prompt = self.story + characters_info + self.protagonist.describe_relationship(sampled_character)\
-                          + self.story_request_prompt + self.character_constraints
-            next_story = get_answer(system_prompt, user_prompt)
-
-            print(next_story)
-
-            self.tell_event(next_story, self.protagonist, sampled_character)
-
-        else:
-            print("non event")
-            print(self.protagonist.to_dict())
-
-            system_prompt = self.writer_prompt
-            user_prompt = self.story + self.character_constraints + self.story_request_prompt
-            next_story = get_answer(system_prompt, user_prompt)
-            print(next_story)
+        pass
 
 
     def tell_event(self, next_story, character_from, character_to):

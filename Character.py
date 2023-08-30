@@ -1,18 +1,21 @@
 
 from openai_utils import *
 class Character:
-    def __init__(self, name, id, relationships, companions, items, background, personality, race, gender, status="Normal"):
+    def __init__(self, name, id, relationships, companions, consumables, equipments, equipments_in_use, background,
+                 personality, race, gender, status="Normal"):
         self.name = name
         self.id = id
         self.relationships = relationships
         self.companions = companions
-        self.items = items
+        self.consumables = consumables
+        self.equipments = equipments
+        self.equipments_in_use = equipments_in_use
         self.background = background
         self.personality = personality
         self.race = race
         # "male" for male , "female" for female, "none" for None
         self.gender = gender
-        self.status = status # @
+        self.status = status
         self.description = None
         self.changed = False
 
@@ -25,15 +28,16 @@ class Character:
                                             "\nname:{}"\
                                             "\nrelationships:{}"\
                                             "\ncompanions:{}"\
-                                            "\nitems:{}"\
+                                            "\nequipments_in_use:{}"\
                                             "\nbackground:{}"\
                                             "\npersonality:{}"\
                                             "\nrace:{}"\
-                                            "\ngender:{}".format(self.name, self.relationships,
+                                            "\ngender:{}"\
+                                            "\nstatus:{}".format(self.name, self.relationships,
                                                                self.companions,
-                                                               self.items, self.background,
+                                                               self.equipments_in_use, self.background,
                                                                self.personality, self.race,
-                                                               self.gender)
+                                                               self.gender, self.status)
 
         summary = get_answer(system_prompt, user_prompt)
         self.description = summary
@@ -45,9 +49,12 @@ class Character:
             "name": self.name,
             "gender": self.gender,
             "personality": self.personality,
+            "status": self.status,
             "relationships": self.relationships,
             "companions": self.companions,
-            "items": self.items,
+            "consumables": self.consumables,
+            "equipments": self.equipments,
+            "equipments_in_use": self.equipments_in_use,
             "background": self.background
         }
         return character_dict

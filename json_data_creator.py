@@ -3,34 +3,17 @@ import json
 save_name = "resource"
 
 # Define the data you want to store in the JSON file
-data = {"character": [{"name": "Robin", "relationships": {}, "companions": {}, "items": [],
-                       "background": "a traveler who was born and raised in a small village nestled deep in a dense forest. When he/she was just a child, his/her village was attacked by a powerful dark wizard, who unleashed a barrage of destructive spells that left the village in ruins. Along with a few survivors, he/she managed to escape the carnage and fled into the wilderness.",
-                       "personality": "adventurous",
-                       "race": "human",
-                       "gender": "male"
-                       }
-                      ],
-        "item": [
+data = {"character": [],
+        "consumables": [
                 {"name": "Mana potion", "description" : "A potion that restores a creature's magical energy or mana."},
-                {"name": "Poisoned dagger", "description": "A dagger that is coated in a poisonous substance, making it especially deadly to enemies."},
-                {"name": "Cloak of invisibility", "description": "A magical cloak that makes the wearer invisible, allowing them to move undetected through the world."},
                 {"name": "Holy water", "description": "A blessed water that can be used to repel or harm undead creatures, such as vampires or zombies."},
-                {"name": "Enchanted bow", "description": "A bow that has been imbued with magical energy, making its arrows more powerful or able to seek out their targets."},
-                {"name": "Ring of teleportation", "description": "A magical ring that allows the wearer to teleport to any location they have previously visited."},
-                {"name": "Staff of fire", "description": "A powerful staff that can be used to summon flames or unleash devastating fire-based spells."},
-                {"name": "Amulet of protection", "description": "An amulet that provides protection against a specific type of harm, such as physical attacks, magical attacks, or curses."},
-                {"name": "Book of spells", "description": "A book filled with arcane knowledge and spells, allowing its owner to cast powerful magical spells."},
                 {"name": "Potion of transformation", "description": "A potion that can be used to transform the drinker into a different creature or form, such as a dragon, a wolf, a bird or fish."},
-                {"name": "Wand of levitation", "description": "A wand that can be used to levitate objects or creatures, allowing them to move through the air."},
-                {"name": "Ring of regeneration", "description": "A ring that grants its wearer the ability to heal rapidly from wounds or injuries."},
-                {"name": "Boots of speed", "description": "Magical boots that allow their wearer to move faster than normal, making them difficult to catch or evade."},
                 {"name": "Scroll of summoning", "description": "A scroll that can be used to summon a creature or object from another realm or dimension."},
                 {"name": "Crystal ball", "description": "A magical crystal ball that can be used to scry on distant locations or people, allowing its user to see and hear what is happening elsewhere."},
-                {"name": "Helm of night vision", "description": "A helmet that enhances its wearer's ability to see in low light conditions, such as during the night or in underground caverns."},
-                {"name": "Staff of elemental control", "description": "A powerful staff that can be used to control elemental forces, such as wind, water, earth, or fire."},
-                {"name": "Amulet of flight", "description": "An amulet that grants its wearer the ability to fly, either through magic or by sprouting wings."},
-                {"name": "Shield of reflection", "description": "A magical shield that can reflect back harmful spells or attacks, protecting its wielder from harm."},
                  ],
+        "equipments": [
+
+        ],
         "background": ["A survivor of a catastrophic event, such as a dragon attack or a magical explosion",
                         "A former member of a notorious band of thieves or pirates",
                         "A veteran of a long-standing conflict between two rival kingdoms or factions",

@@ -5,11 +5,10 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def get_answer(system_prompt, user_prompt, return_token=False):
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo", # ["gpt-4", "gpt-3.5-turbo"]
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user",
-             "content": user_prompt}
+            {"role": "user", "content": user_prompt}
         ]
     )
     answer = response["choices"][0]["message"]["content"]

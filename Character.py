@@ -1,7 +1,7 @@
 
 from openai_utils import *
 class Character:
-    def __init__(self, name, id, relationships, companions, items, background, personality, race, gender):
+    def __init__(self, name, id, relationships, companions, items, background, personality, race, gender, status="Normal"):
         self.name = name
         self.id = id
         self.relationships = relationships
@@ -12,6 +12,7 @@ class Character:
         self.race = race
         # "male" for male , "female" for female, "none" for None
         self.gender = gender
+        self.status = status # @
         self.description = None
         self.changed = False
 
@@ -32,7 +33,7 @@ class Character:
                                                                self.companions,
                                                                self.items, self.background,
                                                                self.personality, self.race,
-                                                                 self.gender)
+                                                               self.gender)
 
         summary = get_answer(system_prompt, user_prompt)
         self.description = summary

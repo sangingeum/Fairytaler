@@ -4,16 +4,7 @@ import random
 import re
 
 # TODOS:
-# equipment, item system 구현
-# companion 고려한 야야기, 이벤트 생성
-# 처음 보는 사이인데 마치 아는 사이인 것처럼 행동하는 경우가 있다. 고치자.
-# 종족 고려하여 인물 성별 자동 설정하는 기능(기본, 종족별..)
-# companion describe function
-# openai 부분 따로 분리
-# complete the event 방식으로 가야하지 않을까
-
-# 선택지 고민: 행동이나 대사를 직접 선택하게 하지 말고 행동이나 대사의 주제를 정해주면 속 내용은 알아서 채워지게..
-# 예를 들어, [도망] [공격] [대화] 이러한 선택지가 나오고 플레이어는 이 중에서 선택하면 되는 방식으로
+# 이미지 생성, 쓰레드 활용
 
 """
 게임 시작
@@ -54,11 +45,7 @@ class StoryManager:
 
         self.assistant_prompt = "You are a helpful assistant."
 
-        self.story = "\nStory:" \
-                     "\nRobin finally reached a forest."
-
-        self.event = "\nEvent:" \
-                     "\n{}"
+        self.story = ""
 
         self.event_commands_continue = "\nCommands:" \
                                        "\nDescribe what characters do or say after the event." \
@@ -107,6 +94,7 @@ class StoryManager:
         self.resource_pool = ResourcePool()
         self.resource_pool.load_resource()
         self.protagonist = None
+        self.universe = None
         self.event_prob = 1
 
     # basic operations
@@ -136,6 +124,7 @@ class StoryManager:
     def init(self):
         # Set the universe
         universe = self.ask_and_confirm("Describe the fictional universe you want to explore.")
+        self.universe = universe
         # Set the protagonist name
         name = self.ask_and_confirm("Write the name of the protagonist.")
         # Set the protagonist gender
@@ -146,10 +135,11 @@ class StoryManager:
         personality = self.ask_and_confirm("Describe the personality of the protagonist.")
         # Set the protagonist background
         background = self.ask_and_confirm("Describe the background of the protagonist.")
+
         # Create an equipable item
         print("We will give you an equipment as a gift.")
         item = self.resource_pool.create_equipable_item("Create an equipable item from the D&D universe considering that the player is (a/an)"+ race + "and the universe the player is in is like this: "+ universe+".")
-        print("You received a(an) {}, which can be put on your {}. {}".format(item["name"], item["slot"], item["description"]))
+        print("You received a(an) {}, {}, which can be put on your {}.".format(item["name"], item["description"], item["slot"]))
 
         # Create the protagonist
         character = Character(name=name, id=0, relationships=[], companions=[], consumables=[], equipments=[],
@@ -157,10 +147,33 @@ class StoryManager:
                   gender=gender)
         self.protagonist = character
 
-
+        # Replace the existing universe
+        prompt = """I want you to act as a novel writer.
+The fictional universe of the story is like this : {}
+Introduce the fictional universe while not mentioning any named characters.
+""".format(self.universe)
+        self.universe = get_answer(prompt)
 
     def tell_story(self):
-        pass
+        command = """I want you to act as the GM of a TRPG game based on the universe and characters written below.
+When a character attempts critical actions such as attacks, escapes, and evades, you need to determine the success or failure of the attempt by rolling a 1d20 die.
+A roll of 10 or above indicates success, while anything below 10 is a failure. I'll play as {0}.
+Equipments, companions, relationships, and status of {0} can change during the playthrough.
+It's your responsibility to update them correctly.""".format(self.protagonist.name)
+
+        prompt = """
+Fictional universe:
+{}
+
+Protagonist information:
+{}
+""".format(self.universe, self.protagonist.describe())
+
+        next_story = get_answer(command + prompt)
+
+        print(command + prompt)
+        print(next_story)
+
 
 
     def tell_event(self, next_story, character_from, character_to):
@@ -204,7 +217,6 @@ class StoryManager:
         story_summary = self.update_story(cur_event)
         print("story_summary")
         print(story_summary)
-
 
 
     def create_supporting_character_lines(self, event, character_from, character_to, event_turn):

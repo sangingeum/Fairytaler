@@ -22,25 +22,19 @@ class Character:
     def describe(self):
         if (not self.changed) and (self.description is not None):
             return self.description
+        summary = """
+Information about {}
+gender: {}
+race: {}
+personality: {}
+background: {}
+equipments_in_use: {}
+companions: {}
+relationships: {}
+status: {}
+        """.format(self.name, self.gender, self.race, self.personality, self.background
+                ,[self.equipments_in_use[key] for key in self.equipments_in_use], self.companions, self.relationships, self.status)
 
-        system_prompt = "You are a helpful assistant."
-        user_prompt = "Summarize information about me."\
-                                            "\nname:{}"\
-                                            "\nrelationships:{}"\
-                                            "\ncompanions:{}"\
-                                            "\nequipments_in_use:{}"\
-                                            "\nbackground:{}"\
-                                            "\npersonality:{}"\
-                                            "\nrace:{}"\
-                                            "\ngender:{}"\
-                                            "\nstatus:{}".format(self.name, self.relationships,
-                                                               self.companions,
-                                                               self.equipments_in_use, self.background,
-                                                               self.personality, self.race,
-                                                               self.gender, self.status)
-
-        summary = get_answer(system_prompt, user_prompt)
-        self.description = summary
         return summary
 
     def to_dict(self):

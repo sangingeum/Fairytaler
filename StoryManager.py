@@ -1,5 +1,6 @@
 from openai_utils import *
 from ResourcePool import *
+from ImageCreator import *
 import random
 import re
 
@@ -93,9 +94,10 @@ class StoryManager:
 
         self.resource_pool = ResourcePool()
         self.resource_pool.load_resource()
+        self.image_creator = ImageCreator()
         self.protagonist = None
         self.universe = None
-        self.event_prob = 1
+
 
     # basic operations
     def save(self, path):
@@ -153,26 +155,41 @@ The fictional universe of the story is like this : {}
 Introduce the fictional universe while not mentioning any named characters.
 """.format(self.universe)
         self.universe = get_answer(prompt)
+        # print the universe description
+        print(self.universe)
+        # Create initial image
+        image_prompt = create_prompt(prompt)
+        self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
 
     def tell_story(self):
         command = """I want you to act as the GM of a TRPG game based on the universe and characters written below.
 When a character attempts critical actions such as attacks, escapes, and evades, you need to determine the success or failure of the attempt by rolling a 1d20 die.
-A roll of 10 or above indicates success, while anything below 10 is a failure. I'll play as {0}.
+A roll of 10 or above indicates success, while anything below 10 is a failure.
 Equipments, companions, relationships, and status of {0} can change during the playthrough.
-It's your responsibility to update them correctly.""".format(self.protagonist.name)
+It's your responsibility to update them correctly. When it is {0}'s turn, stop writing and wait for his/her answer.
+I'll play as {0}.
+""".format(self.protagonist.name)
 
-        prompt = """
+        info = """
 Fictional universe:
 {}
 
 Protagonist information:
 {}
 """.format(self.universe, self.protagonist.describe())
+        user_prompt = command + info
+        messages=[]
+        while True:
+            messages.append({"role": "user", "content": user_prompt})
+            assistant_answer = chat_completion(messages)
+            messages.append({"role": "assistant", "content": assistant_answer})
+            #print(user_prompt)
+            print(assistant_answer)
+            # Create image
+            image_prompt = create_prompt(assistant_answer)
+            self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
 
-        next_story = get_answer(command + prompt)
-
-        print(command + prompt)
-        print(next_story)
+            user_prompt = input(":")
 
 
 

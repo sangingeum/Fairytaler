@@ -8,16 +8,16 @@ def get_answer(user_prompt, system_prompt=None, return_token=False):
     if system_prompt is not None:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": user_prompt})
+    return chat_completion(messages=messages, return_token=return_token)
+def chat_completion(messages, return_token=False):
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",# ["gpt-4", "gpt-3.5-turbo"]
+        model="gpt-3.5-turbo-16k",  # ["gpt-4", "gpt-3.5-turbo"]
         messages=messages
     )
     answer = response["choices"][0]["message"]["content"]
     if return_token:
-        token_used = response['usage']['total_tokens']
-        return answer, token_used
+        return answer, response['usage']['total_tokens']
     return answer
-
 
 def create_prompt(universe="cyberpunk"):
     prompt = """Create an image that depicts this: 
@@ -50,7 +50,7 @@ Please follow this exact pattern and do not make up your own.
         }
     ]
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo-16k",
         messages=messages,
         functions=functions,
         function_call="auto",  # auto is default, but we'll be explicit

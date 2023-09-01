@@ -1,3 +1,8 @@
-torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-diffusers invisible_watermark transformers accelerate safetensors openai
+torch
+diffusers
+invisible_watermark
+transformers
+accelerate
+safetensors
+openai
 compel

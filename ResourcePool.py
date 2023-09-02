@@ -1,7 +1,7 @@
 from Character import *
 import random
 import json
-from openai_utils import *
+from OpenAIUtils import *
 
 class ResourcePool:
     def __init__(self):

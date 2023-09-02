@@ -1,5 +1,5 @@
 
-from openai_utils import *
+from OpenAIUtils import *
 class Character:
     def __init__(self, name, id, relationships, companions, consumables, equipments, equipments_in_use, background,
                  personality, race, gender, status="Normal"):

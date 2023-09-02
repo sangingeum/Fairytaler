@@ -9,8 +9,8 @@ class ImageCreator:
         self.pipe.scheduler = DPMSolverSinglestepScheduler.from_config(self.pipe.scheduler.config)
         self.pipe.vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=torch.float16).to("cuda")
         self.compel = Compel(tokenizer=self.pipe.tokenizer, text_encoder=self.pipe.text_encoder)
-        self.default_prompt = "photorealistic, 32k, shot on Canon EOS-1D X Mark III, photorealistic painting, "
-        self.default_negative_prompt = "painting, drawing, sketch, cartoon, anime, manga, text, watermark, signature, label, "
+        self.default_prompt = "photorealistic, 32k, shot on Canon EOS-1D X Mark III, "
+        self.default_negative_prompt = "painting, drawing, sketch, cartoon, anime, manga, text, watermark, signature, label, logo"
     def create(self, prompt, negative_prompt, save_path="image.jpg"):
         prompt = self.default_prompt + prompt
         negative_prompt = self.default_negative_prompt + negative_prompt
@@ -22,4 +22,3 @@ class ImageCreator:
                           negative_prompt_embeds=negative_conditioning).images[0]
         image.save(save_path)
         image.show()
-        

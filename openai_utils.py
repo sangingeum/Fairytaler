@@ -27,10 +27,11 @@ def create_prompt(universe="cyberpunk"):
     functions = [
         {
             "name": "draw_image",
-            "description": """Text-to-image generation model
+            "description": """Text-to-image generation function
 The prompt consists of keywords, which are descriptive adjectives or nouns to add depth and flavor.
 The negative_prompt are the descriptive adjectives or keywords that you don't want included in the image.
 For example, if the prompt is "cat swimming in day time", you could add "day" as a Keyword and "night" or "dark" as a negative_prompt.
+Keywords are separated by commas.
 Please follow this exact pattern and do not make up your own.
             """,
             "parameters": {

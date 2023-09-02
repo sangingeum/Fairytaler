@@ -6,3 +6,7 @@ accelerate
 safetensors
 openai
 compel
+scipy
+bark
+noisereduce
+nltk

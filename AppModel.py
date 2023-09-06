@@ -1,5 +1,8 @@
-from ResourcePool import *
+from OpenAIUtils import *
+from Character import *
 from ImageCreator import *
+import threading
+import pickle
 
 # TODOS:
 # TTS, 쓰레드 활용, 초상화, 아이템 이미지
@@ -7,15 +10,12 @@ from ImageCreator import *
 # 게임 중간에 아이템 지급, 제거 이벤트
 # 16k 컨텍스트를 넘어서도 내용이 이어지게
 
-class StoryManager:
+class AppModel:
     def __init__(self):
-        self.story = ""
-        self.resource_pool = ResourcePool()
-        self.resource_pool.load_resource()
         self.image_creator = ImageCreator()
         self.protagonist = None
         self.universe = None
-
+        self.messages = []
         # prompts
         self.fictional_universe_expander = """I want you to act as a novel writer.
 The fictional universe of the story is like this : {}
@@ -40,18 +40,86 @@ Fictional universe:
 Protagonist information:
 {2}
 """
+        self.equipment_generation_command = """Create an equipable item for a player whose race is {0} and background is {1}.
+The universe the player is in is like this: 
+{2}
+"""
+        self.consumable_generation_command = """Create a consumable item for a player whose race is {0} and background is {1}.
+The universe the player is in is like this: 
+{2}
+"""
 
     # basic operations
-    def save(self, path):
-        pass
-    def load(self, path):
-        pass
+    def save(self, path=None):
+        if path is None:
+            path = "saves/save0.pkl"
+        print("Saving [" + path + "]")
+        with open(path, 'wb') as file:
+            pickle.dump(self.messages, file)
+            pickle.dump(self.protagonist, file)
+            pickle.dump(self.universe, file)
+        print("Saving Complete")
+
+    def load(self, path=None):
+        if path is None:
+            path = "saves/save0.pkl"
+        print("Loading [" + path + "]")
+        with open(path, 'wb') as file:
+            self.messages = pickle.load(file)
+            self.protagonist = pickle.load(file)
+            self.universe = pickle.load(file)
+        print("Loading Complete")
     def start(self):
-        if self.protagonist is None:
-            self.init()
         self.tell_story()
-    def end(self):
-        pass
+
+    def exit(self):
+        exit()
+
+    def new_game(self):
+        self.init()
+        self.start()
+
+    def load_latest(self):
+        self.load()
+
+    def lobby_menu(self):
+        print("What would you like to do?")
+        print("1. new game")
+        print("2. load")
+        while True:
+            user_input = input("Enter number(1~3):")
+            if user_input in ["1", "2", "3"]:
+                if user_input == "1":
+                    self.new_game()
+                    break
+                elif user_input == "2":
+                    self.load()
+                elif user_input == "3":
+                    self.exit()
+
+
+
+    def in_game_menu(self):
+        print("What would you like to do?")
+        print("1. save")
+        print("2. load")
+        print("3. exit")
+        print("4. go to lobby")
+        print("5. go back to game")
+        while True:
+            user_input = input("Enter number(1~5):")
+            if user_input in ["1", "2", "3", "4", "5"]:
+                if user_input == "1":
+                    self.save()
+                elif user_input == "2":
+                    self.load()
+                elif user_input == "3":
+                    self.exit()
+                elif user_input == "4":
+                    self.lobby_menu()
+                elif user_input == "5":
+                    pass
+                break
 
     def ask_and_confirm(self, question):
         while True:
@@ -79,13 +147,13 @@ Protagonist information:
 
         # Create an equipable item
         print("We will give you an equipment as a gift.")
-        item = self.resource_pool.create_equipable_item("Create an equipable item from the D&D universe considering that the player is (a/an)"+ race + "and the universe the player is in is like this: "+ universe+".")
+        item = create_equipable_item(self.equipment_generation_command.format(race, background, universe))
         print("You received a(an) {}, {}, which can be put on your {}.".format(item["name"], item["description"], item["slot"]))
 
         # Create the protagonist
         character = Character(name=name, id=0, relationships=[], companions=[], consumables=[], equipments=[],
-                  equipments_in_use={item["slot"]: item}, background=background, personality=personality, race=race,
-                  gender=gender)
+                    equipments_in_use={item["slot"]: item}, background=background, personality=personality, race=race,
+                    gender=gender)
         self.protagonist = character
 
         # Replace the existing universe
@@ -95,22 +163,28 @@ Protagonist information:
         print(self.universe)
         # Create initial image
         image_prompt = create_prompt(self.image_prompt_generator.format(self.universe))
-        self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
+
+        image_thread = threading.Thread(target=self.image_creator.create, args=(image_prompt["prompt"], image_prompt["negative_prompt"],))
+        image_thread.start()
+        #self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
 
     def tell_story(self):
         user_prompt = self.game_start_command.format(self.protagonist.name, self.universe, self.protagonist.describe())
-        messages = []
+        self.messages = []
         while True:
-            messages.append({"role": "user", "content": user_prompt})
-            assistant_answer = chat_completion(messages)
-            messages.append({"role": "assistant", "content": assistant_answer})
+            self.messages.append({"role": "user", "content": user_prompt})
+            assistant_answer = chat_completion(self.messages)
+            self.messages.append({"role": "assistant", "content": assistant_answer})
             #print(user_prompt)
             print(assistant_answer)
             # Create image
             image_prompt = create_prompt(self.image_prompt_generator.format(assistant_answer))
-            self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
-
+            image_thread = threading.Thread(target=self.image_creator.create, args=(image_prompt["prompt"], image_prompt["negative_prompt"],))
+            image_thread.start()
+            #self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
             user_prompt = input(":")
+            if user_prompt == "menu":
+                self.main_menu()
 
 
 

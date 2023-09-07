@@ -9,3 +9,4 @@ scipy
 bark
 noisereduce
 nltk
+customtkinter

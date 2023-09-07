@@ -1,8 +1,10 @@
+import os.path
+
 import customtkinter
 from PIL import Image
-import os
 from AppModel import *
-import threading
+from customtkinter import filedialog
+from tkinter import messagebox
 class AppGUI(customtkinter.CTk):
     def __init__(self, model : AppModel):
         super().__init__()
@@ -43,15 +45,16 @@ class AppGUI(customtkinter.CTk):
                                                      text_color=("gray10", "#DCE4EE"), text="Send")
         self.send_button.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
-        # create story_textbox
-        self.story_textbox = customtkinter.CTkTextbox(self, width=250, activate_scrollbars=True)
-        self.story_textbox.grid(row=0, column=1, rowspan=3, padx=(20, 0), pady=(20, 0), sticky="nsew")
+        # create main_textbox
+        self.main_textbox = customtkinter.CTkTextbox(self, width=250, activate_scrollbars=True)
+        self.main_textbox.grid(row=0, column=1, rowspan=3, padx=(20, 0), pady=(20, 0), sticky="nsew")
 
         # create checkbox and switch frame
         self.image_frame = customtkinter.CTkFrame(self)
         self.image_frame.grid(row=0, column=2, columnspan=2, padx=(20, 20), pady=(20, 0), sticky="new")
 
-        self.image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_images")
+        self.current_path = os.path.dirname(os.path.realpath(__file__))
+        self.image_path = os.path.join(self.current_path, "test_images")
         self.image = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "CustomTkinter_logo_single.png")), size=(512, 512))
 
         self.image_label = customtkinter.CTkLabel(self.image_frame, image=self.image, text="")
@@ -60,7 +63,9 @@ class AppGUI(customtkinter.CTk):
         # set default values
         self.appearance_mode_optionemenu.set("dark")
         self.scaling_optionemenu.set("100%")
-        self.story_textbox.configure(state="disabled")
+        self.main_textbox.configure(state="disabled")
+        # set paths
+        self.save_path = os.path.join(self.current_path, "saves")
 
     def _change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -68,6 +73,14 @@ class AppGUI(customtkinter.CTk):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
 
+    def _replace_main_text(self, text):
+        self.main_textbox.configure(state="normal")
+        self.main_textbox.delete("0.0", "end")
+        self.main_textbox.insert("0.0", text)
+        self.main_textbox.configure(state="disabled")
+
+    def _replace_image(self, image):
+        self.image_label.configure(image=customtkinter.CTkImage(image, size=(512, 512)))
     def _disable_all_buttons(self):
         self.send_button.configure(state="disabled")
         self.load_button.configure(state="disabled")
@@ -81,92 +94,57 @@ class AppGUI(customtkinter.CTk):
         self.save_button.configure(state="normal")
     def _save_button_listener(self):
         self._disable_all_buttons()
-        self.model.save("abcd.pkl")
+        dialog = customtkinter.CTkInputDialog(text="Enter file name", title="Save")
+        user_input = dialog.get_input()
+        if user_input is not None:
+            if user_input == "":
+                messagebox.showinfo(title="Error", message="invalid file name")
+            else:
+                # remove spaces, add extension name
+                user_input = user_input.replace(" ", "").replace(".", "") + ".sav"
+                file_path = os.path.join(self.save_path, user_input)
+                if os.path.isfile(file_path):
+                    confirm_override = messagebox.askyesno(title="Override File", message=f"'{user_input}' already exists. Do you want to override it?")
+                    if confirm_override:
+                        if not self.model.save(file_path):
+                            messagebox.showinfo(title="Error", message="Nothing to save")
+                else:
+                    if not self.model.save(file_path):
+                        messagebox.showinfo(title="Error", message="Nothing to save")
         self._enable_all_buttons()
     def _load_button_listener(self):
         self._disable_all_buttons()
-        self.model.load("abcd.pkl")
+        filetypes = (
+            ('Save files', '*.sav'),
+            ('All files', '*.*')
+        )
+        file_path = filedialog.askopenfilename(title="Load",
+                                               initialdir=self.save_path,
+                                               filetypes=filetypes)
+        if self.model.load(file_path):
+            self._replace_main_text(self.model.main_text)
+            self._replace_image(self.model.images[-1])
         self._enable_all_buttons()
     def _new_game_button_listener(self):
         self._disable_all_buttons()
-
-        class NewGameDialog(customtkinter.CTkToplevel):
-            def __init__(self, root):
-                super().__init__(root)
-                self.confirm = False
-                self.title("New game")
-                self.geometry("500x500")
-                self.frame = customtkinter.CTkFrame(self)
-                self.grid_columnconfigure(0, weight=1)
-                self.grid_rowconfigure(0, weight=1)
-                # override x button
-                self.protocol('WM_DELETE_WINDOW', self._cancel_button_clicked)
-
-                self.frame.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="nsew")
-
-                self.name_label = customtkinter.CTkLabel(self.frame, text="Name")
-                self.name_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your name")
-
-                self.gender_label = customtkinter.CTkLabel(self.frame, text="Gender")
-                self.gender_checkbox = customtkinter.CTkCheckBox(self.frame, text="Male")
-
-                self.race_label = customtkinter.CTkLabel(self.frame, text="Race")
-                self.race_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your race")
-
-                self.personality_label = customtkinter.CTkLabel(self.frame, text="Personality")
-                self.personality_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your personality")
-
-                self.bg_label = customtkinter.CTkLabel(self.frame, text="Background")
-                self.bg_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your background")
-
-                self.confirm_button = customtkinter.CTkButton(self.frame, command=self._confirm_button_clicked
-                                                              , text="Confirm")
-                self.cancel_button = customtkinter.CTkButton(self.frame, command=self._cancel_button_clicked
-                                                             , text="Cancel")
-
-                ### grid setting
-                self.frame.grid_rowconfigure((0, 1, 2, 3, 4, 20), weight=1)
-                self.frame.grid_rowconfigure(10, weight=100)
-                self.frame.grid_columnconfigure((0, 1), weight=1)
-                self.frame.grid_columnconfigure(2, weight=2)
-
-                self.name_label.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="nsew")
-                self.name_entry.grid(row=0, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
-                self.gender_label.grid(row=1, column=0, padx=20, pady=(10, 10), sticky="nsew")
-                self.gender_checkbox.grid(row=1, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
-                self.race_label.grid(row=2, column=0, padx=20, pady=(10, 10), sticky="nsew")
-                self.race_entry.grid(row=2, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
-                self.personality_label.grid(row=3, column=0, padx=20, pady=(10, 10), sticky="nsew")
-                self.personality_entry.grid(row=3, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
-                self.bg_label.grid(row=4, column=0, padx=20, pady=(10, 10), sticky="nsew")
-                self.bg_entry.grid(row=4, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
-
-                self.confirm_button.grid(row=20, column=0, columnspan=2, padx=20, pady=(10, 10))
-                self.cancel_button.grid(row=20, column=2, padx=20, pady=(10, 10))
-
-
-                self.attributes('-topmost', 'true')
-                self.grab_set()
-
-            def _confirm_button_clicked(self):
-                self.confirm = True
-                self.quit()
-                self.destroy()
-
-            def _cancel_button_clicked(self):
-                self.quit()
-                self.destroy()
-
-
         dialog = NewGameDialog(self)
-
         dialog.mainloop()
-        # TODO
-        # get info entered
-
-        self.model.new_game()
-
+        text = None
+        context_1 = None
+        context_2 = None
+        if dialog.confirm:
+            information = dialog.get_entered_information()
+            dialog.destroy()
+            text, context_1, context_2 = self.model.new_game(*information)
+        dialog.destroy()
         self._enable_all_buttons()
+        if text is not None:
+            self._replace_main_text(text)
+            # create images
+            image_1 = self.model.create_image_and_append(context_1)
+            self._replace_image(image_1)
+            image_2 = self.model.create_image_and_append(context_2)
+            self._replace_image(image_2)
 
     def _send_button_listener(self):
         self._disable_all_buttons()
@@ -178,6 +156,89 @@ class AppGUI(customtkinter.CTk):
         self.model.exit()
         self.destroy()
         self._enable_all_buttons()
+
+
+# NewGameDialog is popped up when the new game button is clicked
+class NewGameDialog(customtkinter.CTkToplevel):
+    def __init__(self, root):
+        super().__init__(root)
+        self.confirm = False
+        self.title("New game")
+        self.geometry("500x500")
+        self.frame = customtkinter.CTkFrame(self)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        # override x button
+        self.protocol('WM_DELETE_WINDOW', self._cancel_button_clicked)
+
+        self.frame.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="nsew")
+
+        self.universe_label = customtkinter.CTkLabel(self.frame, text="Universe")
+        self.universe_entry = customtkinter.CTkEntry(self.frame,
+                                                     placeholder_text="Describe the universe you want to explore")
+
+        self.name_label = customtkinter.CTkLabel(self.frame, text="Name")
+        self.name_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your name")
+
+        self.gender_label = customtkinter.CTkLabel(self.frame, text="Gender")
+        self.gender_checkbox = customtkinter.CTkCheckBox(self.frame, text="Male")
+
+        self.race_label = customtkinter.CTkLabel(self.frame, text="Race")
+        self.race_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your race")
+
+        self.personality_label = customtkinter.CTkLabel(self.frame, text="Personality")
+        self.personality_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your personality")
+
+        self.bg_label = customtkinter.CTkLabel(self.frame, text="Background")
+        self.bg_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your background")
+
+        self.confirm_button = customtkinter.CTkButton(self.frame, command=self._confirm_button_clicked
+                                                      , text="Confirm")
+        self.cancel_button = customtkinter.CTkButton(self.frame, command=self._cancel_button_clicked
+                                                     , text="Cancel")
+
+        ### grid setting
+        self.frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 20), weight=1)
+        self.frame.grid_rowconfigure(10, weight=100)
+        self.frame.grid_columnconfigure((0, 1), weight=1)
+        self.frame.grid_columnconfigure(2, weight=2)
+
+        self.universe_label.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="nsew")
+        self.universe_entry.grid(row=0, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+        self.name_label.grid(row=1, column=0, padx=20, pady=(10, 10), sticky="nsew")
+        self.name_entry.grid(row=1, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+        self.gender_label.grid(row=2, column=0, padx=20, pady=(10, 10), sticky="nsew")
+        self.gender_checkbox.grid(row=2, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+        self.race_label.grid(row=3, column=0, padx=20, pady=(10, 10), sticky="nsew")
+        self.race_entry.grid(row=3, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+        self.personality_label.grid(row=4, column=0, padx=20, pady=(10, 10), sticky="nsew")
+        self.personality_entry.grid(row=4, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+        self.bg_label.grid(row=5, column=0, padx=20, pady=(10, 10), sticky="nsew")
+        self.bg_entry.grid(row=5, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+
+        self.confirm_button.grid(row=20, column=0, columnspan=2, padx=20, pady=(10, 10))
+        self.cancel_button.grid(row=20, column=2, padx=20, pady=(10, 10))
+
+        self.attributes('-topmost', 'true')
+        self.grab_set()
+
+    def _confirm_button_clicked(self):
+        self.confirm = True
+        self.quit()
+
+    def _cancel_button_clicked(self):
+        self.quit()
+
+    def get_entered_information(self):
+        # universe, name, gender, race, personality, background
+        universe = self.universe_entry.get()
+        name = self.name_entry.get()
+        gender = "male" if self.gender_checkbox.get() == 1 else "female"
+        race = self.race_entry.get()
+        personality = self.personality_entry.get()
+        background = self.bg_entry.get()
+        return (universe, name, gender, race, personality, background)
+
 
 if __name__ == "__main__":
     model = AppModel()

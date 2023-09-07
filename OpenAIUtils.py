@@ -19,20 +19,16 @@ def chat_completion(messages, return_token=False):
         return answer, response['usage']['total_tokens']
     return answer
 
-def create_prompt(universe="cyberpunk"):
-    prompt = """Create an image that depicts this: 
-    "{}"
-    """.format(universe)
+def create_prompt(prompt="Create an image that depicts a cyberpunk city"):
     messages = [{"role": "user", "content": prompt}]
     functions = [
         {
             "name": "draw_image",
             "description": """Text-to-image generation function
-The prompt consists of keywords, which are descriptive adjectives or nouns to add depth and flavor.
-The negative_prompt are the descriptive adjectives or keywords that you don't want included in the image.
+The prompt consists of keywords, which are descriptive adjectives or nouns to add depth and flavor to the resulting image.
+The negative_prompt consists of keywords that you don't want included in the image.
 For example, if the prompt is "cat swimming in day time", you could add "day" as a Keyword and "night" or "dark" as a negative_prompt.
 Keywords are separated by commas.
-Please follow this exact pattern and do not make up your own.
             """,
             "parameters": {
                 "type": "object",
@@ -47,6 +43,77 @@ Please follow this exact pattern and do not make up your own.
                     },
                 },
                 "required": ["prompt", "negative_prompt"],
+            },
+        }
+    ]
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-16k",
+        messages=messages,
+        functions=functions,
+        function_call="auto",  # auto is default, but we'll be explicit
+    )
+    response_message = response["choices"][0]["message"]
+    function_args = json.loads(response_message["function_call"]["arguments"])
+    return function_args
+
+
+def create_consumable_item(prompt="Create a single use item from the D&D universe considering that the player wants healing."):
+    messages = [{"role": "user", "content": prompt}]
+    functions = [
+        {
+            "name": "create_single_use_item",
+            "description": "Create a single use item that have the given properties",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the item to be created",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "The description of the item to be created"
+                    },
+                },
+                "required": ["name", "description"],
+            },
+        }
+    ]
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-16k",
+        messages=messages,
+        functions=functions,
+        function_call="auto",  # auto is default, but we'll be explicit
+    )
+    response_message = response["choices"][0]["message"]
+    function_args = json.loads(response_message["function_call"]["arguments"])
+    return function_args
+
+# need = "is a warrior", "is undead" 등 다양하게 사용 가능
+def create_equipable_item(prompt="Create an equipable item from the D&D universe considering that the player is a wizard."):
+    messages = [{"role": "user", "content": prompt}]
+    functions = [
+        {
+            "name": "create_equipable_item",
+            "description": "Create an equipable item that matches the given properties."
+                           "The item should not be single-use. It can be used multiple times.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the item to be created",
+                    },
+                    "slot": {
+                        "type": "string",
+                        "description": "The part where equipment can be worn or attached",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "The description of the item to be created"
+                    },
+                },
+                "required": ["name", "slot", "description"],
             },
         }
     ]

@@ -7,10 +7,9 @@ import pickle
 
 # TODOS:
 # TTS, 쓰레드 활용, 초상화, 아이템 이미지
-# 게임 저장, 로드, 종료
 # 게임 중간에 아이템 지급, 제거 이벤트
 # 16k 컨텍스트를 넘어서도 내용이 이어지게
-# 유저 인풋을 기다릴 때만 저장이 가능하게 하자
+# 상태표시(생성중, 대기중 등)
 
 class AppModel:
     def __init__(self):
@@ -19,10 +18,10 @@ class AppModel:
         self.messages = []
         self.main_text = ""
         self.waiting_user_input = False
-        self.image_count = 0
         self.image_creator = ImageCreator()
         self.image_list_lock = threading.Lock()
         self.images = []
+        self.image_index = 0
         # prompts
         self.fictional_universe_expander = """I want you to act as a novel writer.
 The fictional universe of the story is like this : {}
@@ -59,11 +58,19 @@ The universe the player is in is like this:
         
 [System] You received a(an) {}, {}. It can be equipped on your {}.
 
-{}
-"""
+{}"""
+    def init(self):
+        self.protagonist = None
+        self.universe = None
+        self.messages = []
+        self.main_text = ""
+        self.waiting_user_input = False
+        self.images = []
+        self.image_index = 0
 
     def new_game(self, universe, name, gender, race, personality, background):
         print("new game")
+        self.init()
         self.universe = universe
         with ThreadPoolExecutor(max_workers=2) as executor:
             item_future = executor.submit(create_equipable_item, self.equipment_generation_command.format(race, background, universe))
@@ -77,13 +84,10 @@ The universe the player is in is like this:
         self.universe = universe_future.result()
         # init message and get answer
         user_prompt = self.game_start_command.format(self.protagonist.name, self.universe, self.protagonist.describe())
-        self.messages = []
         self.messages.append({"role": "user", "content": user_prompt})
         assistant_answer = chat_completion(self.messages)
         self.messages.append({"role": "assistant", "content": assistant_answer})
-
         self.waiting_user_input = True
-
         main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"], assistant_answer)
         context_1 = self.image_prompt_generator.format(self.universe)
         context_2 = self.image_prompt_generator.format(assistant_answer)
@@ -109,7 +113,31 @@ The universe the player is in is like this:
         image = self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
         with self.image_list_lock:
             self.images.append(image)
+            self.image_index = len(self.images)
         return image
+
+    def get_prev_image(self):
+        with self.image_list_lock:
+            index = self.image_index - 1
+            if index >= 0 and index < len(self.images):
+                self.image_index = index
+                return self.images[index]
+        return None
+
+    def get_next_image(self):
+        with self.image_list_lock:
+            index = self.image_index + 1
+            if index >= 0 and index < len(self.images):
+                self.image_index = index
+                return self.images[index]
+        return None
+
+    def get_last_image(self):
+        with self.image_list_lock:
+            index = len(self.images)-1
+            self.image_index = index
+            return self.images[index]
+        return None
 
     def save(self, path):
         try:
@@ -121,7 +149,7 @@ The universe the player is in is like this:
                     pickle.dump(self.messages, file)
                     pickle.dump(self.main_text, file)
                     pickle.dump(self.waiting_user_input, file)
-                    pickle.dump(self.image_count, file)
+                    pickle.dump(self.image_creator.get_image_count(), file)
                     pickle.dump(self.images, file)
                 print("Saving Complete")
                 return True
@@ -138,9 +166,12 @@ The universe the player is in is like this:
                 self.messages = pickle.load(file)
                 self.main_text = pickle.load(file)
                 self.waiting_user_input = pickle.load(file)
-                self.image_count = pickle.load(file)
+                image_count = pickle.load(file)
                 self.images = pickle.load(file)
-            self.image_creator.change_image_count(self.image_count)
+
+            self.image_creator.change_image_count(image_count)
+            print(self.image_index)
+            print(len(self.images))
             print("Loading Complete")
             return True
         except:

@@ -19,7 +19,7 @@ class AppGUI(customtkinter.CTk):
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=10000)
         self.grid_columnconfigure(2, weight=1)
-        self.grid_rowconfigure((0, 1, 2), weight=1)
+        self.grid_rowconfigure((1, 2), weight=1)
         # create sidebar frame with widgets
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
@@ -59,6 +59,12 @@ class AppGUI(customtkinter.CTk):
 
         self.image_label = customtkinter.CTkLabel(self.image_frame, image=self.image, text="")
         self.image_label.grid(row=0, column=0, pady=(20, 0), padx=20, sticky="ne")
+
+        # image_change_buttons
+        self.prev_button = customtkinter.CTkButton(self, text="prev")
+        self.prev_button.grid(row=1, column=2, pady=(20, 0), padx=20, sticky="nw")
+        self.next_button = customtkinter.CTkButton(self, text="next")
+        self.next_button.grid(row=1, column=3, pady=(20, 0), padx=20, sticky="ne")
 
         # set default values
         self.appearance_mode_optionemenu.set("dark")

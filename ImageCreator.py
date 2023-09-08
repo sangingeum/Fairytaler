@@ -25,6 +25,7 @@ class ImageCreator:
         with self.creation_lock:
             if save_path is None:
                 save_path = "images/image{}".format(self.count) + ".jpg"
+                print("image saved at " + save_path)
                 self.count += 1
             image = self.pipe(prompt_embeds=conditioning,
                               num_inference_steps=30,
@@ -37,3 +38,7 @@ class ImageCreator:
     def change_image_count(self, count):
         with self.creation_lock:
             self.count = count
+
+    def get_image_count(self):
+        with self.creation_lock:
+            return self.count

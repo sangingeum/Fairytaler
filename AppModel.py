@@ -1,9 +1,9 @@
-from OpenAIUtils import *
+import pickle
+from concurrent.futures import ThreadPoolExecutor
+
 from Character import *
 from ImageCreator import *
-import threading
-from concurrent.futures import ThreadPoolExecutor
-import pickle
+from OpenAIUtils import *
 
 
 # TODOS:

@@ -1,8 +1,9 @@
-from diffusers import StableDiffusionPipeline, DPMSolverSinglestepScheduler
-from compel import Compel
-import torch
-from diffusers import AutoencoderKL
 import threading
+
+import torch
+from compel import Compel
+from diffusers import AutoencoderKL
+from diffusers import StableDiffusionPipeline, DPMSolverSinglestepScheduler
 
 
 class ImageCreator:

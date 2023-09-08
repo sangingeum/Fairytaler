@@ -1,10 +1,10 @@
 import os.path
+from queue import Queue
+
 import customtkinter
 from PIL import Image
+
 from AppModel import *
-from customtkinter import filedialog
-from tkinter import messagebox
-from queue import Queue
 
 
 class AppGUI(customtkinter.CTk):

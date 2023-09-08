@@ -1,10 +1,11 @@
 import os.path
-
 import customtkinter
 from PIL import Image
 from AppModel import *
 from customtkinter import filedialog
 from tkinter import messagebox
+from queue import Queue
+
 class AppGUI(customtkinter.CTk):
     def __init__(self, model : AppModel):
         super().__init__()
@@ -27,11 +28,11 @@ class AppGUI(customtkinter.CTk):
         self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Fairytaler", font=customtkinter.CTkFont(size=24, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
         ## buttons
-        self.save_button = customtkinter.CTkButton(self.sidebar_frame, text="Save", command=self._save_button_listener)
+        self.save_button = customtkinter.CTkButton(self.sidebar_frame, text="Save", command=self._default_listener)
         self.save_button.grid(row=1, column=0, padx=20, pady=10)
-        self.load_button = customtkinter.CTkButton(self.sidebar_frame, text="Load", command=self._load_button_listener)
+        self.load_button = customtkinter.CTkButton(self.sidebar_frame, text="Load", command=self._default_listener)
         self.load_button.grid(row=2, column=0, padx=20, pady=10)
-        self.new_game_button = customtkinter.CTkButton(self.sidebar_frame, text="New Game", command=self._new_game_button_listener)
+        self.new_game_button = customtkinter.CTkButton(self.sidebar_frame, text="New Game", command=self._default_listener)
         self.new_game_button.grid(row=3, column=0, padx=20, pady=10)
         ## options
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"],command=self._change_appearance_mode_event)
@@ -61,9 +62,9 @@ class AppGUI(customtkinter.CTk):
         self.image_label.grid(row=0, column=0, pady=(20, 0), padx=20, sticky="ne")
 
         # image_change_buttons
-        self.prev_button = customtkinter.CTkButton(self, text="prev")
+        self.prev_button = customtkinter.CTkButton(self, text="Prev", command=self._default_listener)
         self.prev_button.grid(row=1, column=2, pady=(20, 0), padx=20, sticky="nw")
-        self.next_button = customtkinter.CTkButton(self, text="next")
+        self.next_button = customtkinter.CTkButton(self, text="Next", command=self._default_listener)
         self.next_button.grid(row=1, column=3, pady=(20, 0), padx=20, sticky="ne")
 
         # set default values
@@ -72,97 +73,85 @@ class AppGUI(customtkinter.CTk):
         self.main_textbox.configure(state="disabled")
         # set paths
         self.save_path = os.path.join(self.current_path, "saves")
+        # GUI update queue
+        self.update_queue = Queue()
+        self._periodic_update()
 
+    def _periodic_update(self):
+        self.after(200, func=self._periodic_update)
+        self.apply_update()
+
+    def _default_listener(self):
+        print("default_listener")
     def _change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
     def _change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
 
-    def _replace_main_text(self, text):
+    def apply_update(self):
+        while True:
+            try:
+                update = self.update_queue.get(block=False, timeout=None)
+                self._process_update(update)
+            except:
+                break
+
+    def _process_update(self, update):
+        arg = update.get("arg")
+        if arg is None:
+            update["function"]()
+        else:
+            update["function"](arg)
+
+    def replace_main_text(self, text):
         self.main_textbox.configure(state="normal")
         self.main_textbox.delete("0.0", "end")
         self.main_textbox.insert("0.0", text)
         self.main_textbox.configure(state="disabled")
 
-    def _replace_image(self, image):
+    def append_to_main_text(self, text):
+        self.main_textbox.configure(state="normal")
+        self.main_textbox.insert("end", text)
+        self.main_textbox.see("end")
+        self.main_textbox.configure(state="disabled")
+
+    def replace_image(self, image):
         self.image_label.configure(image=customtkinter.CTkImage(image, size=(512, 512)))
-    def _disable_all_buttons(self):
+
+    def empty_user_textbox(self):
+        self.user_textbox.delete("0.0", "end")
+
+    def disable_all_buttons(self):
         self.send_button.configure(state="disabled")
         self.load_button.configure(state="disabled")
         self.new_game_button.configure(state="disabled")
         self.save_button.configure(state="disabled")
+        self.prev_button.configure(state="disabled")
+        self.next_button.configure(state="disabled")
 
-    def _enable_all_buttons(self):
+    def enable_all_buttons(self):
         self.send_button.configure(state="normal")
         self.load_button.configure(state="normal")
         self.new_game_button.configure(state="normal")
         self.save_button.configure(state="normal")
-    def _save_button_listener(self):
-        self._disable_all_buttons()
-        dialog = customtkinter.CTkInputDialog(text="Enter file name", title="Save")
-        user_input = dialog.get_input()
-        if user_input is not None:
-            if user_input == "":
-                messagebox.showinfo(title="Error", message="invalid file name")
-            else:
-                # remove spaces, add extension name
-                user_input = user_input.replace(" ", "").replace(".", "") + ".sav"
-                file_path = os.path.join(self.save_path, user_input)
-                if os.path.isfile(file_path):
-                    confirm_override = messagebox.askyesno(title="Override File", message=f"'{user_input}' already exists. Do you want to override it?")
-                    if confirm_override:
-                        if not self.model.save(file_path):
-                            messagebox.showinfo(title="Error", message="Nothing to save")
-                else:
-                    if not self.model.save(file_path):
-                        messagebox.showinfo(title="Error", message="Nothing to save")
-        self._enable_all_buttons()
-    def _load_button_listener(self):
-        self._disable_all_buttons()
-        filetypes = (
-            ('Save files', '*.sav'),
-            ('All files', '*.*')
-        )
-        file_path = filedialog.askopenfilename(title="Load",
-                                               initialdir=self.save_path,
-                                               filetypes=filetypes)
-        if self.model.load(file_path):
-            self._replace_main_text(self.model.main_text)
-            self._replace_image(self.model.images[-1])
-        self._enable_all_buttons()
-    def _new_game_button_listener(self):
-        self._disable_all_buttons()
-        dialog = NewGameDialog(self)
-        dialog.mainloop()
-        text = None
-        context_1 = None
-        context_2 = None
-        if dialog.confirm:
-            information = dialog.get_entered_information()
-            dialog.destroy()
-            text, context_1, context_2 = self.model.new_game(*information)
-        dialog.destroy()
-        self._enable_all_buttons()
-        if text is not None:
-            self._replace_main_text(text)
-            # create images
-            image_1 = self.model.create_image_and_append(context_1)
-            self._replace_image(image_1)
-            image_2 = self.model.create_image_and_append(context_2)
-            self._replace_image(image_2)
+        self.prev_button.configure(state="normal")
+        self.next_button.configure(state="normal")
 
-    def _send_button_listener(self):
-        self._disable_all_buttons()
-        print("send")
-        self._enable_all_buttons()
+    def set_save_button_listener(self, command):
+        self.save_button.configure(command=command)
+    def set_load_button_listener(self, command):
+        self.load_button.configure(command=command)
+    def set_new_game_button_listener(self, command):
+        self.new_game_button.configure(command=command)
+    def set_send_button_listener(self, command):
+        self.send_button.configure(command=command)
 
-    def _exit_button_listener(self):
-        self._disable_all_buttons()
-        self.model.exit()
-        self.destroy()
-        self._enable_all_buttons()
+    def set_prev_button_listener(self, command):
+        self.prev_button.configure(command=command)
 
+    def set_next_button_listener(self, command):
+        self.next_button.configure(command=command)
 
 # NewGameDialog is popped up when the new game button is clicked
 class NewGameDialog(customtkinter.CTkToplevel):
@@ -180,8 +169,7 @@ class NewGameDialog(customtkinter.CTkToplevel):
         self.frame.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="nsew")
 
         self.universe_label = customtkinter.CTkLabel(self.frame, text="Universe")
-        self.universe_entry = customtkinter.CTkEntry(self.frame,
-                                                     placeholder_text="Describe the universe you want to explore")
+        self.universe_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Describe the universe you want to explore")
 
         self.name_label = customtkinter.CTkLabel(self.frame, text="Name")
         self.name_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your name")
@@ -198,10 +186,8 @@ class NewGameDialog(customtkinter.CTkToplevel):
         self.bg_label = customtkinter.CTkLabel(self.frame, text="Background")
         self.bg_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your background")
 
-        self.confirm_button = customtkinter.CTkButton(self.frame, command=self._confirm_button_clicked
-                                                      , text="Confirm")
-        self.cancel_button = customtkinter.CTkButton(self.frame, command=self._cancel_button_clicked
-                                                     , text="Cancel")
+        self.confirm_button = customtkinter.CTkButton(self.frame, command=self._confirm_button_clicked, text="Confirm")
+        self.cancel_button = customtkinter.CTkButton(self.frame, command=self._cancel_button_clicked, text="Cancel")
 
         ### grid setting
         self.frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 20), weight=1)

@@ -5,6 +5,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 import pickle
 
+
 # TODOS:
 # TTS, 쓰레드 활용, 초상화, 아이템 이미지
 # 게임 중간에 아이템 지급, 제거 이벤트
@@ -59,6 +60,7 @@ The universe the player is in is like this:
 [System] You received a(an) {}, {}. It can be equipped on your {}.
 
 {}"""
+
     def init(self):
         self.protagonist = None
         self.universe = None
@@ -73,7 +75,8 @@ The universe the player is in is like this:
         self.init()
         self.universe = universe
         with ThreadPoolExecutor(max_workers=2) as executor:
-            item_future = executor.submit(create_equipable_item, self.equipment_generation_command.format(race, background, universe))
+            item_future = executor.submit(create_equipable_item,
+                                          self.equipment_generation_command.format(race, background, universe))
             universe_future = executor.submit(get_answer, self.fictional_universe_expander.format(self.universe))
         item = item_future.result()
         # create the protagonist
@@ -88,7 +91,8 @@ The universe the player is in is like this:
         assistant_answer = chat_completion(self.messages)
         self.messages.append({"role": "assistant", "content": assistant_answer})
         self.waiting_user_input = True
-        main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"], assistant_answer)
+        main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"],
+                                              assistant_answer)
         context_1 = self.image_prompt_generator.format(self.universe)
         context_2 = self.image_prompt_generator.format(assistant_answer)
         self.main_text = main_text
@@ -134,7 +138,7 @@ The universe the player is in is like this:
 
     def get_last_image(self):
         with self.image_list_lock:
-            index = len(self.images)-1
+            index = len(self.images) - 1
             self.image_index = index
             return self.images[index]
         return None

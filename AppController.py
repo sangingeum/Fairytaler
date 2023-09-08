@@ -1,11 +1,13 @@
 from AppGUI import *
 from AppModel import *
 
+
 class AppController():
     def __init__(self, view: AppGUI, model: AppModel):
         self.view = view
         self.model = model
         self.init_view()
+
     def init_view(self):
         self.view.set_save_button_listener(self.save)
         self.view.set_load_button_listener(self.load)
@@ -109,18 +111,19 @@ class AppController():
 
     def _replace_main_text(self, text):
         self.view.update_queue.put({"function": self.view.replace_main_text, "arg": text})
+
     def _append_to_main_text(self, text):
         self.view.update_queue.put({"function": self.view.append_to_main_text, "arg": text})
+
     def _empty_user_textbox(self):
         self.view.update_queue.put({"function": self.view.empty_user_textbox})
+
     def _enable_all_buttons(self):
         self.view.update_queue.put({"function": self.view.enable_all_buttons})
+
 
 if __name__ == "__main__":
     model = AppModel()
     view = AppGUI(model)
     AppController(view, model)
     view.mainloop()
-
-
-

@@ -31,7 +31,8 @@ companions: {}
 relationships: {}
 status: {}
         """.format(self.name, self.gender, self.race, self.personality, self.background
-                ,[self.equipments_in_use[key] for key in self.equipments_in_use], self.companions, self.relationships, self.status)
+                   , [self.equipments_in_use[key] for key in self.equipments_in_use], self.companions,
+                   self.relationships, self.status)
 
         return summary
 

@@ -1,7 +1,9 @@
 import openai
 import json
 import os
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 def get_answer(user_prompt, system_prompt=None, return_token=False):
     messages = []
@@ -9,6 +11,8 @@ def get_answer(user_prompt, system_prompt=None, return_token=False):
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": user_prompt})
     return chat_completion(messages=messages, return_token=return_token)
+
+
 def chat_completion(messages, return_token=False):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-16k",  # ["gpt-4", "gpt-3.5-turbo"]
@@ -18,6 +22,7 @@ def chat_completion(messages, return_token=False):
     if return_token:
         return answer, response['usage']['total_tokens']
     return answer
+
 
 def create_prompt(prompt="Create an image that depicts a cyberpunk city"):
     messages = [{"role": "user", "content": prompt}]
@@ -57,7 +62,8 @@ Keywords are separated by commas.
     return function_args
 
 
-def create_consumable_item(prompt="Create a single use item from the D&D universe considering that the player wants healing."):
+def create_consumable_item(
+        prompt="Create a single use item from the D&D universe considering that the player wants healing."):
     messages = [{"role": "user", "content": prompt}]
     functions = [
         {
@@ -89,8 +95,10 @@ def create_consumable_item(prompt="Create a single use item from the D&D univers
     function_args = json.loads(response_message["function_call"]["arguments"])
     return function_args
 
+
 # need = "is a warrior", "is undead" 등 다양하게 사용 가능
-def create_equipable_item(prompt="Create an equipable item from the D&D universe considering that the player is a wizard."):
+def create_equipable_item(
+        prompt="Create an equipable item from the D&D universe considering that the player is a wizard."):
     messages = [{"role": "user", "content": prompt}]
     functions = [
         {

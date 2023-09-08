@@ -6,8 +6,9 @@ from customtkinter import filedialog
 from tkinter import messagebox
 from queue import Queue
 
+
 class AppGUI(customtkinter.CTk):
-    def __init__(self, model : AppModel):
+    def __init__(self, model: AppModel):
         super().__init__()
         # set model
         self.model = model
@@ -24,26 +25,32 @@ class AppGUI(customtkinter.CTk):
         # create sidebar frame with widgets
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(10, weight=1) # empty space at row 10
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Fairytaler", font=customtkinter.CTkFont(size=24, weight="bold"))
+        self.sidebar_frame.grid_rowconfigure(10, weight=1)  # empty space at row 10
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Fairytaler",
+                                                 font=customtkinter.CTkFont(size=24, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
         ## buttons
         self.save_button = customtkinter.CTkButton(self.sidebar_frame, text="Save", command=self._default_listener)
         self.save_button.grid(row=1, column=0, padx=20, pady=10)
         self.load_button = customtkinter.CTkButton(self.sidebar_frame, text="Load", command=self._default_listener)
         self.load_button.grid(row=2, column=0, padx=20, pady=10)
-        self.new_game_button = customtkinter.CTkButton(self.sidebar_frame, text="New Game", command=self._default_listener)
+        self.new_game_button = customtkinter.CTkButton(self.sidebar_frame, text="New Game",
+                                                       command=self._default_listener)
         self.new_game_button.grid(row=3, column=0, padx=20, pady=10)
         ## options
-        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"],command=self._change_appearance_mode_event)
+        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame,
+                                                                       values=["Light", "Dark", "System"],
+                                                                       command=self._change_appearance_mode_event)
         self.appearance_mode_optionemenu.grid(row=11, column=0, padx=20, pady=(10, 10))
-        self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["80%", "90%", "100%", "110%", "120%"],command=self._change_scaling_event)
+        self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame,
+                                                               values=["80%", "90%", "100%", "110%", "120%"],
+                                                               command=self._change_scaling_event)
         self.scaling_optionemenu.grid(row=12, column=0, padx=20, pady=(10, 20))
         # create user_textbox and send button
         self.user_textbox = customtkinter.CTkTextbox(master=self, height=28, activate_scrollbars=True)
         self.user_textbox.grid(row=3, column=1, columnspan=2, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.send_button = customtkinter.CTkButton(master=self, fg_color="transparent", border_width=2,
-                                                     text_color=("gray10", "#DCE4EE"), text="Send")
+                                                   text_color=("gray10", "#DCE4EE"), text="Send")
         self.send_button.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         # create main_textbox
@@ -56,7 +63,8 @@ class AppGUI(customtkinter.CTk):
 
         self.current_path = os.path.dirname(os.path.realpath(__file__))
         self.image_path = os.path.join(self.current_path, "test_images")
-        self.image = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "CustomTkinter_logo_single.png")), size=(512, 512))
+        self.image = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "CustomTkinter_logo_single.png")),
+                                            size=(512, 512))
 
         self.image_label = customtkinter.CTkLabel(self.image_frame, image=self.image, text="")
         self.image_label.grid(row=0, column=0, pady=(20, 0), padx=20, sticky="ne")
@@ -83,8 +91,10 @@ class AppGUI(customtkinter.CTk):
 
     def _default_listener(self):
         print("default_listener")
+
     def _change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
+
     def _change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
@@ -140,10 +150,13 @@ class AppGUI(customtkinter.CTk):
 
     def set_save_button_listener(self, command):
         self.save_button.configure(command=command)
+
     def set_load_button_listener(self, command):
         self.load_button.configure(command=command)
+
     def set_new_game_button_listener(self, command):
         self.new_game_button.configure(command=command)
+
     def set_send_button_listener(self, command):
         self.send_button.configure(command=command)
 
@@ -152,6 +165,7 @@ class AppGUI(customtkinter.CTk):
 
     def set_next_button_listener(self, command):
         self.next_button.configure(command=command)
+
 
 # NewGameDialog is popped up when the new game button is clicked
 class NewGameDialog(customtkinter.CTkToplevel):
@@ -169,7 +183,8 @@ class NewGameDialog(customtkinter.CTkToplevel):
         self.frame.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="nsew")
 
         self.universe_label = customtkinter.CTkLabel(self.frame, text="Universe")
-        self.universe_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Describe the universe you want to explore")
+        self.universe_entry = customtkinter.CTkEntry(self.frame,
+                                                     placeholder_text="Describe the universe you want to explore")
 
         self.name_label = customtkinter.CTkLabel(self.frame, text="Name")
         self.name_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your name")

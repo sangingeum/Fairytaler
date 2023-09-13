@@ -37,6 +37,8 @@ class AppController():
         if self.model.load(file_path):
             self.view.replace_main_text(self.model.main_text)
             self.view.replace_image(self.model.get_last_image())
+            self.music_first()
+
 
         self.view.enable_all_buttons()
 
@@ -148,6 +150,13 @@ class AppController():
     def music_next(self):
         self.view.disable_all_buttons()
         success, index = self.model.load_next_music()
+        if success:
+            self._change_music_label(f"Status: Playing {index}.wav")
+        self.view.enable_all_buttons()
+
+    def music_first(self):
+        self.view.disable_all_buttons()
+        success, index = self.model.load_first_music()
         if success:
             self._change_music_label(f"Status: Playing {index}.wav")
         self.view.enable_all_buttons()

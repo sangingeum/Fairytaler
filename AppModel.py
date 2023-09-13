@@ -201,6 +201,9 @@ The universe the player is in is like this:
                     return True, index
         return False, 0
 
+    def load_first_music(self):
+        return self.load_music(0), 0
+
     def load_music(self, index) -> bool:
         with self.music_list_lock:
             try:
@@ -227,7 +230,7 @@ The universe the player is in is like this:
                 else:
                     self.mixer.unpause()
         except:
-            success, index = self.load_last_music()
+            success, index = self.load_first_music()
             if success:
                 self.play_music()
                 return True, index

@@ -4,14 +4,9 @@ from queue import Queue
 import customtkinter
 from PIL import Image
 
-from AppModel import *
-
-
 class AppGUI(customtkinter.CTk):
-    def __init__(self, model: AppModel):
+    def __init__(self):
         super().__init__()
-        # set model
-        self.model = model
         # set default style
         customtkinter.set_appearance_mode("dark")
         customtkinter.set_default_color_theme("dark-blue")
@@ -37,15 +32,34 @@ class AppGUI(customtkinter.CTk):
         self.new_game_button = customtkinter.CTkButton(self.sidebar_frame, text="New Game",
                                                        command=self._default_listener)
         self.new_game_button.grid(row=3, column=0, padx=20, pady=10)
+        ## music player
+
+        self.music_player_frame = customtkinter.CTkFrame(self.sidebar_frame)
+        self.music_player_frame.grid(row=12, column=0, padx=10, pady=10)
+
+        self.music_slider = customtkinter.CTkSlider(self.music_player_frame, width=140)
+        self.music_slider.grid(row=0, column=0, columnspan=3, padx=5, pady=10)
+        self.music_slider.set(0)
+
+        self.music_prev_button = customtkinter.CTkButton(self.music_player_frame, width=28,
+                                                         text="Prev", command=self._default_listener)
+        self.music_prev_button.grid(row=1, column=0, padx=10, pady=10)
+        self.music_play_button = customtkinter.CTkButton(self.music_player_frame, width=28,
+                                                          text="▶", command=self._default_listener)
+        self.music_play_button.grid(row=1, column=1, padx=10, pady=10)
+        self.music_next_button = customtkinter.CTkButton(self.music_player_frame, width=28,
+                                                         text="Next", command=self._default_listener)
+        self.music_next_button.grid(row=1, column=2, padx=10, pady=10)
+
         ## options
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame,
                                                                        values=["Light", "Dark", "System"],
                                                                        command=self._change_appearance_mode_event)
-        self.appearance_mode_optionemenu.grid(row=11, column=0, padx=20, pady=(10, 10))
+        self.appearance_mode_optionemenu.grid(row=15, column=0, padx=20, pady=(10, 10))
         self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame,
                                                                values=["80%", "90%", "100%", "110%", "120%"],
                                                                command=self._change_scaling_event)
-        self.scaling_optionemenu.grid(row=12, column=0, padx=20, pady=(10, 20))
+        self.scaling_optionemenu.grid(row=16, column=0, padx=20, pady=(10, 20))
         # create user_textbox and send button
         self.user_textbox = customtkinter.CTkTextbox(master=self, height=28, activate_scrollbars=True)
         self.user_textbox.grid(row=3, column=1, columnspan=2, padx=(20, 0), pady=(20, 20), sticky="nsew")
@@ -70,10 +84,10 @@ class AppGUI(customtkinter.CTk):
         self.image_label.grid(row=0, column=0, pady=(20, 0), padx=20, sticky="ne")
 
         # image_change_buttons
-        self.prev_button = customtkinter.CTkButton(self, text="Prev", command=self._default_listener)
-        self.prev_button.grid(row=1, column=2, pady=(20, 0), padx=20, sticky="nw")
-        self.next_button = customtkinter.CTkButton(self, text="Next", command=self._default_listener)
-        self.next_button.grid(row=1, column=3, pady=(20, 0), padx=20, sticky="ne")
+        self.image_prev_button = customtkinter.CTkButton(self, text="Prev", command=self._default_listener)
+        self.image_prev_button.grid(row=1, column=2, pady=(20, 0), padx=20, sticky="nw")
+        self.image_next_button = customtkinter.CTkButton(self, text="Next", command=self._default_listener)
+        self.image_next_button.grid(row=1, column=3, pady=(20, 0), padx=20, sticky="ne")
 
         # set default values
         self.appearance_mode_optionemenu.set("dark")
@@ -118,6 +132,7 @@ class AppGUI(customtkinter.CTk):
         self.main_textbox.configure(state="normal")
         self.main_textbox.delete("0.0", "end")
         self.main_textbox.insert("0.0", text)
+        self.main_textbox.see("end")
         self.main_textbox.configure(state="disabled")
 
     def append_to_main_text(self, text):
@@ -137,16 +152,16 @@ class AppGUI(customtkinter.CTk):
         self.load_button.configure(state="disabled")
         self.new_game_button.configure(state="disabled")
         self.save_button.configure(state="disabled")
-        self.prev_button.configure(state="disabled")
-        self.next_button.configure(state="disabled")
+        self.image_prev_button.configure(state="disabled")
+        self.image_next_button.configure(state="disabled")
 
     def enable_all_buttons(self):
         self.send_button.configure(state="normal")
         self.load_button.configure(state="normal")
         self.new_game_button.configure(state="normal")
         self.save_button.configure(state="normal")
-        self.prev_button.configure(state="normal")
-        self.next_button.configure(state="normal")
+        self.image_prev_button.configure(state="normal")
+        self.image_next_button.configure(state="normal")
 
     def set_save_button_listener(self, command):
         self.save_button.configure(command=command)
@@ -160,13 +175,20 @@ class AppGUI(customtkinter.CTk):
     def set_send_button_listener(self, command):
         self.send_button.configure(command=command)
 
-    def set_prev_button_listener(self, command):
-        self.prev_button.configure(command=command)
+    def set_image_prev_button_listener(self, command):
+        self.image_prev_button.configure(command=command)
 
-    def set_next_button_listener(self, command):
-        self.next_button.configure(command=command)
+    def set_image_next_button_listener(self, command):
+        self.image_next_button.configure(command=command)
 
+    def set_music_prev_button_listener(self, command):
+        self.music_prev_button.configure(command=command)
 
+    def set_music_play_button_listener(self, command):
+        self.music_play_button.configure(command=command)
+
+    def set_music_next_button_listener(self, command):
+        self.music_next_button.configure(command=command)
 # NewGameDialog is popped up when the new game button is clicked
 class NewGameDialog(customtkinter.CTkToplevel):
     def __init__(self, root):
@@ -246,8 +268,3 @@ class NewGameDialog(customtkinter.CTkToplevel):
         background = self.bg_entry.get()
         return (universe, name, gender, race, personality, background)
 
-
-if __name__ == "__main__":
-    model = AppModel()
-    app = AppGUI(model)
-    app.mainloop()

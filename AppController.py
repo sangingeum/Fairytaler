@@ -1,6 +1,6 @@
 from AppGUI import *
 from AppModel import *
-
+from tkinter import messagebox, filedialog
 
 class AppController():
     def __init__(self, view: AppGUI, model: AppModel):
@@ -13,8 +13,12 @@ class AppController():
         self.view.set_load_button_listener(self.load)
         self.view.set_new_game_button_listener(self.new_game)
         self.view.set_send_button_listener(self.send)
-        self.view.set_prev_button_listener(self.prev)
-        self.view.set_next_button_listener(self.next)
+        self.view.set_image_prev_button_listener(self.image_prev)
+        self.view.set_image_next_button_listener(self.image_next)
+        self.view.set_music_prev_button_listener(self.music_prev)
+        self.view.set_music_next_button_listener(self.music_next)
+        self.view.set_music_play_button_listener(self.music_play)
+
 
     def save(self):
         self.view.disable_all_buttons()
@@ -64,6 +68,15 @@ class AppController():
             self.view.enable_all_buttons()
         dialog.destroy()
 
+    def _new_game_helper(self, information):
+        text, context_1, context_2 = self.model.new_game(*information)
+        self._sync_main_text()
+        # create images
+        threading.Thread(target=self._create_and_replace_image, args=(context_1,)).start()
+        threading.Thread(target=self._create_and_replace_image, args=(context_2,)).start()
+        # create sound
+        threading.Thread(target=self._create_and_append_music, args=(text,)).start()
+        self._enable_all_buttons()
     def send(self):
         self.view.disable_all_buttons()
         user_prompt = self.view.user_textbox.get("0.0", "end").strip()
@@ -72,36 +85,17 @@ class AppController():
         else:
             self.view.enable_all_buttons()
 
-    def prev(self):
-        self.view.disable_all_buttons()
-        image = self.model.get_prev_image()
-        if image is not None:
-            self.view.replace_image(image)
-        self.view.enable_all_buttons()
-
-    def next(self):
-        self.view.disable_all_buttons()
-        image = self.model.get_next_image()
-        if image is not None:
-            self.view.replace_image(image)
-        self.view.enable_all_buttons()
-
-    def _new_game_helper(self, information):
-        text, context_1, context_2 = self.model.new_game(*information)
-        self._replace_main_text(text)
-        # create images
-        threading.Thread(target=self._create_and_replace_image, args=(context_1,)).start()
-        threading.Thread(target=self._create_and_replace_image, args=(context_2,)).start()
-        self._enable_all_buttons()
 
     def _send_helper(self, user_prompt):
         if self.model.waiting_user_input:
-            self._append_to_main_text("\n\n" + user_prompt)
             self._empty_user_textbox()
+            self._sync_main_text()
         answer = self.model.process_user_text(user_prompt)
         if answer is not None:
+            # create image and sound
             threading.Thread(target=self._create_and_replace_image, args=(answer,)).start()
-            self._append_to_main_text("\n\n" + answer)
+            threading.Thread(target=self._create_and_append_music, args=(answer,)).start()
+            self._sync_main_text()
         self._enable_all_buttons()
 
     def _create_and_replace_image(self, context):
@@ -109,11 +103,10 @@ class AppController():
         self.view.update_queue.put({"function": self.view.replace_image,
                                     "arg": self.model.get_last_image()})
 
-    def _replace_main_text(self, text):
-        self.view.update_queue.put({"function": self.view.replace_main_text, "arg": text})
-
-    def _append_to_main_text(self, text):
-        self.view.update_queue.put({"function": self.view.append_to_main_text, "arg": text})
+    def _create_and_append_music(self, text):
+        self.model.create_music_and_append(text)
+    def _sync_main_text(self):
+        self.view.update_queue.put({"function": self.view.replace_main_text, "arg": self.model.main_text})
 
     def _empty_user_textbox(self):
         self.view.update_queue.put({"function": self.view.empty_user_textbox})
@@ -121,9 +114,31 @@ class AppController():
     def _enable_all_buttons(self):
         self.view.update_queue.put({"function": self.view.enable_all_buttons})
 
+    def image_prev(self):
+        self.view.disable_all_buttons()
+        image = self.model.get_prev_image()
+        if image is not None:
+            self.view.replace_image(image)
+        self.view.enable_all_buttons()
 
-if __name__ == "__main__":
-    model = AppModel()
-    view = AppGUI(model)
-    AppController(view, model)
-    view.mainloop()
+    def image_next(self):
+        self.view.disable_all_buttons()
+        image = self.model.get_next_image()
+        if image is not None:
+            self.view.replace_image(image)
+        self.view.enable_all_buttons()
+
+    def music_prev(self):
+        self.view.disable_all_buttons()
+        self.model.load_prev_music()
+        self.view.enable_all_buttons()
+
+    def music_play(self):
+        self.view.disable_all_buttons()
+        self.model.play_music()
+        self.view.enable_all_buttons()
+
+    def music_next(self):
+        self.view.disable_all_buttons()
+        self.model.load_next_music()
+        self.view.enable_all_buttons()

@@ -1,5 +1,4 @@
 import threading
-
 import torch
 from compel import Compel
 from diffusers import AutoencoderKL

@@ -1,3 +1,7 @@
-from StoryManager import *
-story_manager = StoryManager()
-story_manager.start()
+from AppController import *
+
+if __name__ == "__main__":
+    model = AppModel()
+    view = AppGUI()
+    AppController(view, model)
+    view.mainloop()

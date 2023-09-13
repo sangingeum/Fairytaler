@@ -38,6 +38,8 @@ class AppModel:
         # pygame
         pygame.init()
         self.mixer = pygame.mixer.music
+        self.MUSIC_END = pygame.USEREVENT + 1
+        self.mixer.set_endevent(self.MUSIC_END)
 
         # prompts
         self.fictional_universe_expander = """I want you to act as a novel writer.
@@ -204,6 +206,9 @@ The universe the player is in is like this:
             try:
                 print("Loading music " + self.save_dir + f"{index}.wav")
                 self.mixer.stop()
+                # empty MUSIC_END event
+                for _ in pygame.event.get():
+                    pass
                 self.mixer.load(self.save_dir + f"{index}.wav")
                 self.music_length = pygame.mixer.Sound(self.save_dir + f"{index}.wav").get_length()
                 self.music_index = index

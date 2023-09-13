@@ -88,8 +88,19 @@ class AppController():
                                     "arg": self.model.get_image(index)})
 
     def music_progress_bar_update(self):
+        # progress bar update
         progress = 0 if self.model.mixer.get_pos() == -1 else (self.model.mixer.get_pos() / 1000.0 / self.model.music_length)
         self.view.update_queue.put({"function": self.view.change_progress_bar_value, "arg": progress})
+        # auto play next sound
+        for event in pygame.event.get():
+            if self.view.music_keep_playing_toggle.get():
+                if event.type == self.model.MUSIC_END:
+                    success, index = self.model.load_next_music()
+                    if success:
+                        print('auto play next music')
+                        self._change_music_label(f"Status: Playing {index}.wav")
+                        self.music_play()
+
 
     def _create_and_save_music(self, text):
         self.model.create_and_save_music(text)

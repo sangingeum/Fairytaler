@@ -20,5 +20,19 @@ To play this game, you'll need an OpenAI API key.
 The game utilizes an environment variable named ```OPENAI_API_KEY``` as the key for authentication.      
 Refer to [this page](https://platform.openai.com/docs/api-reference/authentication) for more details.
 
+### System
 
+You need enough VRAM and DRAM capacity to load models and perform inferences with them.
 
+## Images
+
+### main
+![main](readme_images/main.PNG)
+### new game
+![main](readme_images/new_game.PNG)
+### EX1 : Cyberpunk
+![main](readme_images/cb1.PNG)
+![main](readme_images/cb2.PNG)
+### EX1 : Baldur's gate
+![main](readme_images/md1.PNG)
+![main](readme_images/md2.PNG)

@@ -6,7 +6,7 @@ from OpenAIUtils import *
 from MusicCreator import *
 from scipy.io.wavfile import write as write_wav
 import pygame
-
+from PIL import Image
 # TODOS:
 # TTS, 쓰레드 활용, 초상화, 아이템 이미지
 # 게임 중간에 아이템 지급, 제거 이벤트
@@ -24,14 +24,17 @@ class AppModel:
         self.waiting_user_input = False
         self.image_creator = ImageCreator()
         self.image_list_lock = threading.Lock()
-        self.images = []
         self.image_index = 0
+        self.image_count = 0
 
         self.music_creator = MusicCreator()
         self.music_list_lock = threading.Lock()
-        self.musics = []
         self.music_index = 0
+        self.music_count = 0
         self.music_length = 0
+
+        self.save_dir = None
+        self.save_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "saves")
         # pygame
         pygame.init()
         self.mixer = pygame.mixer.music
@@ -82,15 +85,20 @@ The universe the player is in is like this:
         self.messages = []
         self.main_text = ""
         self.waiting_user_input = False
-        self.images = []
         self.image_index = 0
-        self.musics = []
+        self.image_count = 0
         self.music_index = 0
+        self.music_count = 0
         self.music_length = 0
-    def new_game(self, universe, name, gender, race, personality, background):
+        self.save_dir = None
+
+    def new_game(self, universe, name, gender, race, personality, background, save_name):
         print("new game")
         self.reset()
         self.universe = universe
+        self.save_dir = "saves/" + save_name + "/"
+        os.makedirs("saves/" + save_name)
+
         with ThreadPoolExecutor(max_workers=2) as executor:
             item_future = executor.submit(create_equipable_item,
                                           self.equipment_generation_command.format(race, background, universe))
@@ -127,74 +135,80 @@ The universe the player is in is like this:
             return assistant_answer
         return None
 
-    def create_image_and_append(self, context):
+    def create_and_save_image(self, context):
         image_prompt = create_prompt(self.image_prompt_generator.format(context))
-        image = self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
         with self.image_list_lock:
-            self.images.append(image)
-            self.image_index = len(self.images)
+            cur_count = self.image_count
+            self.image_count += 1
+        image = self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
+        image.save(self.save_dir + f"{cur_count}.jpg")
+        return cur_count
 
-    def create_music_and_append(self, text):
+    def create_and_save_music(self, text):
         musics = self.music_creator.create(text)
         for music in musics:
             with self.music_list_lock:
-                self.musics.append(music)
+                cur_count = self.music_count
+                self.music_count += 1
+            signal, rate = music
+            write_wav(self.save_dir + f"{cur_count}.wav", rate=rate, data=signal)
 
     def get_prev_image(self):
-        with self.image_list_lock:
-            index = self.image_index - 1
-            if index >= 0 and index < len(self.images):
-                self.image_index = index
-                return self.images[index]
-        return None
+        index = self.image_index - 1
+        image = self.get_image(index)
+        if image is not None:
+            self.image_index = index
+        return image
 
     def get_next_image(self):
-        with self.image_list_lock:
-            index = self.image_index + 1
-            if index >= 0 and index < len(self.images):
-                self.image_index = index
-                return self.images[index]
-        return None
+        index = self.image_index + 1
+        image = self.get_image(index)
+        if image is not None:
+            self.image_index = index
+        return image
 
     def get_last_image(self):
-        with self.image_list_lock:
-            index = len(self.images) - 1
-            if index >= 0:
+        for index in range(self.image_count - 1, -1, -1):
+            image = self.get_image(index)
+            if image is not None:
                 self.image_index = index
-                return self.images[index]
-            return None
+                return image
+        return None
 
-    def load_prev_music(self):
-        with self.music_list_lock:
-            index = self.music_index - 1
-            if index >= 0 and index < len(self.musics):
-                self.music_index = index
-                self._load_music(self.musics[index])
+    def get_image(self, index:int):
+        with self.image_list_lock:
+            try:
+                image = Image.open(self.save_dir + f"{index}.jpg")
+                self.image_index = index
+                return image
+            except:
+                return None
+
+    def load_prev_music(self) -> bool:
+        index = self.music_index - 1
+        return self.load_music(index)
+
+    def load_next_music(self)-> bool:
+        index = self.music_index + 1
+        return self.load_music(index)
+
+    def load_last_music(self) -> bool:
+        for index in range(self.music_count - 1, -1, -1):
+            if self.load_music(index):
                 return True
         return False
 
-    def load_next_music(self):
+    def load_music(self, index) -> bool:
         with self.music_list_lock:
-            index = self.music_index + 1
-            if index >= 0 and index < len(self.musics):
+            try:
+                print("Loading music " + self.save_dir + f"{index}.wav")
+                self.mixer.stop()
+                self.mixer.load(self.save_dir + f"{index}.wav")
                 self.music_index = index
-                self._load_music(self.musics[index])
+                print("Loading complete")
                 return True
-        return False
-
-    def load_last_music(self):
-        with self.music_list_lock:
-            index = len(self.musics) - 1
-            if index >= 0:
-                self.music_index = index
-                self._load_music(self.musics[index])
-                return True
-            return False
-
-    def _load_music(self, music):
-        write_wav("toload.wav", rate=music[1], data=music[0])
-        self.mixer.load("toload.wav")
-        self.music_length = pygame.mixer.Sound("toload.wav").get_length()
+            except:
+                return False
 
     def play_music(self):
         try:
@@ -211,9 +225,10 @@ The universe the player is in is like this:
             else:
                 print("no music detected")
 
-    def save(self, path):
+    def save(self):
         try:
             if self.waiting_user_input:
+                path = self.save_dir + "game.sav"
                 print("Saving [" + path + "]")
                 with open(path, 'wb') as file:
                     pickle.dump(self.protagonist, file)
@@ -221,12 +236,12 @@ The universe the player is in is like this:
                     pickle.dump(self.messages, file)
                     pickle.dump(self.main_text, file)
                     pickle.dump(self.waiting_user_input, file)
-                    pickle.dump(self.image_creator.get_image_count(), file)
-                    pickle.dump(self.images, file)
-                    pickle.dump(self.musics, file)
+                    pickle.dump(self.image_index, file)
+                    pickle.dump(self.image_count, file)
                     pickle.dump(self.music_index, file)
+                    pickle.dump(self.music_count, file)
                     pickle.dump(self.music_length, file)
-
+                    pickle.dump(self.save_dir, file)
                 print("Saving Complete")
                 return True
             return False
@@ -242,12 +257,12 @@ The universe the player is in is like this:
                 self.messages = pickle.load(file)
                 self.main_text = pickle.load(file)
                 self.waiting_user_input = pickle.load(file)
-                image_count = pickle.load(file)
-                self.images = pickle.load(file)
-                self.musics = pickle.load(file)
+                self.image_index = pickle.load(file)
+                self.image_count = pickle.load(file)
                 self.music_index = pickle.load(file)
+                self.music_count = pickle.load(file)
                 self.music_length = pickle.load(file)
-            self.image_creator.change_image_count(image_count)
+                self.save_dir = pickle.load(file)
             print("Loading Complete")
             return True
         except:

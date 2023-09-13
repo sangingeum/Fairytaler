@@ -19,27 +19,9 @@ class AppController():
         self.view.set_music_next_button_listener(self.music_next)
         self.view.set_music_play_button_listener(self.music_play)
 
-
     def save(self):
         self.view.disable_all_buttons()
-        dialog = customtkinter.CTkInputDialog(text="Enter file name", title="Save")
-        user_input = dialog.get_input()
-        if user_input is not None:
-            if user_input == "":
-                messagebox.showinfo(title="Error", message="invalid file name")
-            else:
-                # remove spaces, add extension name
-                user_input = user_input.replace(" ", "").replace(".", "") + ".sav"
-                file_path = os.path.join(self.view.save_path, user_input)
-                if os.path.isfile(file_path):
-                    confirm_override = messagebox.askyesno(title="Override File",
-                                                           message=f"'{user_input}' already exists. Do you want to override it?")
-                    if confirm_override:
-                        if not self.model.save(file_path):
-                            messagebox.showinfo(title="Error", message="Nothing to save")
-                else:
-                    if not self.model.save(file_path):
-                        messagebox.showinfo(title="Error", message="Nothing to save")
+        self.model.save()
         self.view.enable_all_buttons()
 
     def load(self):
@@ -75,8 +57,9 @@ class AppController():
         threading.Thread(target=self._create_and_replace_image, args=(context_1,)).start()
         threading.Thread(target=self._create_and_replace_image, args=(context_2,)).start()
         # create sound
-        threading.Thread(target=self._create_and_append_music, args=(text,)).start()
+        threading.Thread(target=self._create_and_save_music, args=(text,)).start()
         self._enable_all_buttons()
+
     def send(self):
         self.view.disable_all_buttons()
         user_prompt = self.view.user_textbox.get("0.0", "end").strip()
@@ -94,17 +77,18 @@ class AppController():
         if answer is not None:
             # create image and sound
             threading.Thread(target=self._create_and_replace_image, args=(answer,)).start()
-            threading.Thread(target=self._create_and_append_music, args=(answer,)).start()
+            threading.Thread(target=self._create_and_save_music, args=(answer,)).start()
             self._sync_main_text()
         self._enable_all_buttons()
 
     def _create_and_replace_image(self, context):
-        self.model.create_image_and_append(context)
+        index = self.model.create_and_save_image(context)
         self.view.update_queue.put({"function": self.view.replace_image,
-                                    "arg": self.model.get_last_image()})
+                                    "arg": self.model.get_image(index)})
 
-    def _create_and_append_music(self, text):
-        self.model.create_music_and_append(text)
+    def _create_and_save_music(self, text):
+        self.model.create_and_save_music(text)
+
     def _sync_main_text(self):
         self.view.update_queue.put({"function": self.view.replace_main_text, "arg": self.model.main_text})
 

@@ -3,7 +3,7 @@ from queue import Queue
 
 import customtkinter
 from PIL import Image
-
+from tkinter import messagebox
 class AppGUI(customtkinter.CTk):
     def __init__(self):
         super().__init__()
@@ -149,17 +149,17 @@ class AppGUI(customtkinter.CTk):
 
     def disable_all_buttons(self):
         self.send_button.configure(state="disabled")
+        self.save_button.configure(state="disabled")
         self.load_button.configure(state="disabled")
         self.new_game_button.configure(state="disabled")
-        self.save_button.configure(state="disabled")
         self.image_prev_button.configure(state="disabled")
         self.image_next_button.configure(state="disabled")
 
     def enable_all_buttons(self):
         self.send_button.configure(state="normal")
+        self.save_button.configure(state="normal")
         self.load_button.configure(state="normal")
         self.new_game_button.configure(state="normal")
-        self.save_button.configure(state="normal")
         self.image_prev_button.configure(state="normal")
         self.image_next_button.configure(state="normal")
 
@@ -223,6 +223,9 @@ class NewGameDialog(customtkinter.CTkToplevel):
         self.bg_label = customtkinter.CTkLabel(self.frame, text="Background")
         self.bg_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter your background")
 
+        self.path_label = customtkinter.CTkLabel(self.frame, text="Save Name")
+        self.path_entry = customtkinter.CTkEntry(self.frame, placeholder_text="Enter a save name for the new game")
+
         self.confirm_button = customtkinter.CTkButton(self.frame, command=self._confirm_button_clicked, text="Confirm")
         self.cancel_button = customtkinter.CTkButton(self.frame, command=self._cancel_button_clicked, text="Cancel")
 
@@ -244,27 +247,49 @@ class NewGameDialog(customtkinter.CTkToplevel):
         self.personality_entry.grid(row=4, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
         self.bg_label.grid(row=5, column=0, padx=20, pady=(10, 10), sticky="nsew")
         self.bg_entry.grid(row=5, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+        self.path_label.grid(row=6, column=0, padx=20, pady=(10, 10), sticky="nsew")
+        self.path_entry.grid(row=6, column=1, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
 
         self.confirm_button.grid(row=20, column=0, columnspan=2, padx=20, pady=(10, 10))
         self.cancel_button.grid(row=20, column=2, padx=20, pady=(10, 10))
 
         self.attributes('-topmost', 'true')
         self.grab_set()
+        # set path
+        self.current_path = self.current_path = os.path.dirname(os.path.realpath(__file__))
+        self.save_path = os.path.join(self.current_path, "saves")
 
     def _confirm_button_clicked(self):
-        self.confirm = True
-        self.quit()
+        if self._path_check():
+            self.confirm = True
+            self.quit()
 
     def _cancel_button_clicked(self):
         self.quit()
 
+    def _path_check(self) -> bool:
+        save_name = self.path_entry.get()
+        if save_name == "":
+            messagebox.showinfo(title="Error", message="invalid save name")
+        else:
+            dir_path = os.path.join(self.save_path, save_name)
+            if os.path.isdir(dir_path):
+                confirm_override = messagebox.askyesno(title="Override Folder",
+                                                       message=f"'{save_name}' already exists. Do you want to override it?")
+                if confirm_override:
+                    return True
+            else:
+                return True
+        return False
+
     def get_entered_information(self):
-        # universe, name, gender, race, personality, background
+        # universe, name, gender, race, personality, background, save_name
         universe = self.universe_entry.get()
         name = self.name_entry.get()
         gender = "male" if self.gender_checkbox.get() == 1 else "female"
         race = self.race_entry.get()
         personality = self.personality_entry.get()
         background = self.bg_entry.get()
-        return (universe, name, gender, race, personality, background)
+        save_name = self.path_entry.get()
+        return (universe, name, gender, race, personality, background, save_name)
 

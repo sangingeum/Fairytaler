@@ -205,6 +205,7 @@ The universe the player is in is like this:
                 print("Loading music " + self.save_dir + f"{index}.wav")
                 self.mixer.stop()
                 self.mixer.load(self.save_dir + f"{index}.wav")
+                self.music_length = pygame.mixer.Sound(self.save_dir + f"{index}.wav").get_length()
                 self.music_index = index
                 print("Loading complete")
                 return True

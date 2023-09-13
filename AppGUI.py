@@ -45,9 +45,9 @@ class AppGUI(customtkinter.CTk):
         self.music_status_label = customtkinter.CTkLabel(self.music_player_frame, text="Status: Idle")
         self.music_status_label.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
-        self.music_slider = customtkinter.CTkSlider(self.music_player_frame, width=140)
-        self.music_slider.grid(row=3, column=0, columnspan=3, padx=5, pady=10)
-        self.music_slider.set(0)
+        self.music_progress_bar = customtkinter.CTkProgressBar(self.music_player_frame, width=140)
+        self.music_progress_bar.grid(row=3, column=0, columnspan=3, padx=5, pady=10)
+        self.music_progress_bar.set(0)
 
         self.music_prev_button = customtkinter.CTkButton(self.music_player_frame, width=28,
                                                          text="Prev", command=self._default_listener)
@@ -105,7 +105,9 @@ class AppGUI(customtkinter.CTk):
         self.save_path = os.path.join(self.current_path, "saves")
         # GUI update queue
         self.update_queue = Queue()
+        self.update_function = None
         self._periodic_update()
+
 
     def _periodic_update(self):
         self.after(200, func=self._periodic_update)
@@ -122,6 +124,8 @@ class AppGUI(customtkinter.CTk):
         customtkinter.set_widget_scaling(new_scaling_float)
 
     def apply_update(self):
+        if self.update_function is not None:
+            self.update_function()
         while True:
             try:
                 update = self.update_queue.get(block=False, timeout=None)
@@ -155,8 +159,8 @@ class AppGUI(customtkinter.CTk):
     def empty_user_textbox(self):
         self.user_textbox.delete("0.0", "end")
 
-    def change_slider_value(self, value):
-        self.music_slider.set(value)
+    def change_progress_bar_value(self, value):
+        self.music_progress_bar.set(value)
 
     def change_music_label(self, text):
         self.music_status_label.configure(text=text)

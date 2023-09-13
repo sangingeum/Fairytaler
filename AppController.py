@@ -18,6 +18,7 @@ class AppController():
         self.view.set_music_prev_button_listener(self.music_prev)
         self.view.set_music_next_button_listener(self.music_next)
         self.view.set_music_play_button_listener(self.music_play)
+        self.view.update_function = self.music_progress_bar_update
 
     def save(self):
         self.view.disable_all_buttons()
@@ -85,6 +86,10 @@ class AppController():
         index = self.model.create_and_save_image(context)
         self.view.update_queue.put({"function": self.view.replace_image,
                                     "arg": self.model.get_image(index)})
+
+    def music_progress_bar_update(self):
+        progress = 0 if self.model.mixer.get_pos() == -1 else (self.model.mixer.get_pos() / 1000.0 / self.model.music_length)
+        self.view.update_queue.put({"function": self.view.change_progress_bar_value, "arg": progress})
 
     def _create_and_save_music(self, text):
         self.model.create_and_save_music(text)

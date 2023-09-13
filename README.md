@@ -26,13 +26,13 @@ You need enough VRAM and DRAM capacity to load models and perform inferences wit
 
 ## Images
 
-### main
+### Main
 ![main](readme_images/main.PNG)
-### new game
+### New Game
 ![main](readme_images/new_game.PNG)
 ### EX1 : Cyberpunk
 ![main](readme_images/cb1.PNG)
 ![main](readme_images/cb2.PNG)
-### EX1 : Baldur's gate
+### EX1 : Medieval Fantasy World
 ![main](readme_images/md1.PNG)
 ![main](readme_images/md2.PNG)

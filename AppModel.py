@@ -7,13 +7,13 @@ from MusicCreator import *
 from scipy.io.wavfile import write as write_wav
 import pygame
 from PIL import Image
+
 # TODOS:
 # TTS, 쓰레드 활용, 초상화, 아이템 이미지
 # 게임 중간에 아이템 지급, 제거 이벤트
 # 16k 컨텍스트를 넘어서도 내용이 이어지게
 # 상태표시(생성중, 대기중 등)
 # 로고 만들기
-# 저장 방식 바꾸기 -> 폴더에 음악, 이미지, 피클 저장
 
 class AppModel:
     def __init__(self):
@@ -184,19 +184,20 @@ The universe the player is in is like this:
             except:
                 return None
 
-    def load_prev_music(self) -> bool:
+    def load_prev_music(self):
         index = self.music_index - 1
-        return self.load_music(index)
+        return self.load_music(index), index
 
-    def load_next_music(self)-> bool:
+    def load_next_music(self):
         index = self.music_index + 1
-        return self.load_music(index)
+        return self.load_music(index), index
 
-    def load_last_music(self) -> bool:
-        for index in range(self.music_count - 1, -1, -1):
-            if self.load_music(index):
-                return True
-        return False
+    def load_last_music(self):
+        if self.music_count > 0:
+            for index in range(self.music_count - 1, -1, -1):
+                if self.load_music(index):
+                    return True, index
+        return False, 0
 
     def load_music(self, index) -> bool:
         with self.music_list_lock:
@@ -220,10 +221,13 @@ The universe the player is in is like this:
                 else:
                     self.mixer.unpause()
         except:
-            if self.load_last_music():
+            success, index = self.load_last_music()
+            if success:
                 self.play_music()
+                return True, index
             else:
                 print("no music detected")
+        return False, ""
 
     def save(self):
         try:

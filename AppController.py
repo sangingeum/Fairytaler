@@ -98,6 +98,9 @@ class AppController():
     def _enable_all_buttons(self):
         self.view.update_queue.put({"function": self.view.enable_all_buttons})
 
+    def _change_music_label(self, text):
+        self.view.update_queue.put({"function": self.view.change_music_label, "arg": text})
+
     def image_prev(self):
         self.view.disable_all_buttons()
         image = self.model.get_prev_image()
@@ -114,15 +117,21 @@ class AppController():
 
     def music_prev(self):
         self.view.disable_all_buttons()
-        self.model.load_prev_music()
+        success, index = self.model.load_prev_music()
+        if success:
+            self._change_music_label(f"Status: Playing {index}.wav")
         self.view.enable_all_buttons()
 
     def music_play(self):
         self.view.disable_all_buttons()
-        self.model.play_music()
+        loaded, index = self.model.play_music()
+        if loaded:
+            self._change_music_label(f"Status: Playing {index}.wav")
         self.view.enable_all_buttons()
 
     def music_next(self):
         self.view.disable_all_buttons()
-        self.model.load_next_music()
+        success, index = self.model.load_next_music()
+        if success:
+            self._change_music_label(f"Status: Playing {index}.wav")
         self.view.enable_all_buttons()

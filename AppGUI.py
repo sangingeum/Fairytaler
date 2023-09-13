@@ -32,24 +32,32 @@ class AppGUI(customtkinter.CTk):
         self.new_game_button = customtkinter.CTkButton(self.sidebar_frame, text="New Game",
                                                        command=self._default_listener)
         self.new_game_button.grid(row=3, column=0, padx=20, pady=10)
-        ## music player
 
+        # auto play toggle
+        self.music_keep_playing_toggle = customtkinter.CTkSwitch(self.sidebar_frame, text="Auto play next sound")
+        self.music_keep_playing_toggle.grid(row=11, column=0, columnspan=3, padx=10, pady=10)
+        self.music_keep_playing_toggle.select()
+
+        ## music player
         self.music_player_frame = customtkinter.CTkFrame(self.sidebar_frame)
-        self.music_player_frame.grid(row=12, column=0, padx=10, pady=10)
+        self.music_player_frame.grid(row=12, column=0, padx=10, pady=10, sticky="ew")
+
+        self.music_status_label = customtkinter.CTkLabel(self.music_player_frame, text="Status: Idle")
+        self.music_status_label.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
         self.music_slider = customtkinter.CTkSlider(self.music_player_frame, width=140)
-        self.music_slider.grid(row=0, column=0, columnspan=3, padx=5, pady=10)
+        self.music_slider.grid(row=3, column=0, columnspan=3, padx=5, pady=10)
         self.music_slider.set(0)
 
         self.music_prev_button = customtkinter.CTkButton(self.music_player_frame, width=28,
                                                          text="Prev", command=self._default_listener)
-        self.music_prev_button.grid(row=1, column=0, padx=10, pady=10)
+        self.music_prev_button.grid(row=4, column=0, padx=10, pady=10)
         self.music_play_button = customtkinter.CTkButton(self.music_player_frame, width=28,
                                                           text="▶", command=self._default_listener)
-        self.music_play_button.grid(row=1, column=1, padx=10, pady=10)
+        self.music_play_button.grid(row=4, column=1, padx=10, pady=10)
         self.music_next_button = customtkinter.CTkButton(self.music_player_frame, width=28,
                                                          text="Next", command=self._default_listener)
-        self.music_next_button.grid(row=1, column=2, padx=10, pady=10)
+        self.music_next_button.grid(row=4, column=2, padx=10, pady=10)
 
         ## options
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame,
@@ -146,6 +154,12 @@ class AppGUI(customtkinter.CTk):
 
     def empty_user_textbox(self):
         self.user_textbox.delete("0.0", "end")
+
+    def change_slider_value(self, value):
+        self.music_slider.set(value)
+
+    def change_music_label(self, text):
+        self.music_status_label.configure(text=text)
 
     def disable_all_buttons(self):
         self.send_button.configure(state="disabled")
@@ -293,3 +307,7 @@ class NewGameDialog(customtkinter.CTkToplevel):
         save_name = self.path_entry.get()
         return (universe, name, gender, race, personality, background, save_name)
 
+
+if __name__ == "__main__":
+    view = AppGUI()
+    view.mainloop()

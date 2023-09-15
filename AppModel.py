@@ -2,7 +2,7 @@ import pickle
 from concurrent.futures import ThreadPoolExecutor
 from Character import *
 from ImageCreator import *
-from OpenAIUtils import *
+from TextCreator import *
 from MusicCreator import *
 from scipy.io.wavfile import write as write_wav
 import pygame
@@ -35,6 +35,8 @@ class AppModel:
 
         self.save_dir = None
         self.save_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "saves")
+
+        self.text_creator = TextCreator()
         # pygame
         pygame.init()
         self.mixer = pygame.mixer.music
@@ -102,9 +104,10 @@ The universe the player is in is like this:
         os.makedirs("saves/" + save_name)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
-            item_future = executor.submit(create_equipable_item,
+            item_future = executor.submit(self.text_creator.create_equipable_item,
                                           self.equipment_generation_command.format(race, background, universe))
-            universe_future = executor.submit(get_answer, self.fictional_universe_expander.format(self.universe))
+            universe_future = executor.submit(self.text_creator.chat_completion_with_string,
+                                              self.fictional_universe_expander.format(self.universe))
         item = item_future.result()
         # create the protagonist
         character = Character(name=name, id=0, relationships=[], companions=[], consumables=[], equipments=[],
@@ -115,7 +118,7 @@ The universe the player is in is like this:
         # init message and get answer
         user_prompt = self.game_start_command.format(self.protagonist.name, self.universe, self.protagonist.describe())
         self.messages.append({"role": "user", "content": user_prompt})
-        assistant_answer = chat_completion(self.messages)
+        assistant_answer = self.text_creator.chat_completion_with_message(self.messages)
         self.messages.append({"role": "assistant", "content": assistant_answer})
         self.waiting_user_input = True
         main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"],
@@ -130,7 +133,7 @@ The universe the player is in is like this:
             self.main_text += "\n\n[{}] ".format(self.protagonist.name) + user_prompt
             self.waiting_user_input = False
             self.messages.append({"role": "user", "content": user_prompt})
-            assistant_answer = chat_completion(self.messages)
+            assistant_answer = self.text_creator.chat_completion_with_message(self.messages)
             self.messages.append({"role": "assistant", "content": assistant_answer})
             self.main_text += "\n\n" + assistant_answer
             self.waiting_user_input = True
@@ -138,7 +141,7 @@ The universe the player is in is like this:
         return None
 
     def create_and_save_image(self, context):
-        image_prompt = create_prompt(self.image_prompt_generator.format(context))
+        image_prompt = self.text_creator.create_image_prompt(self.image_prompt_generator.format(context))
         with self.image_list_lock:
             cur_count = self.image_count
             self.image_count += 1

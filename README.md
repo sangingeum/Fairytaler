@@ -1,6 +1,6 @@
 # Fairytaler
-Interactive story generator based on generative models.     
-The goal of this project is to make an interactive, infinitely replayable text-based game.
+ An interactive story generator based on GPT-3.5.    
+ The goal of this project is to make an interative, infinitely replayable text-based game.
 
 ## Requirements
 
@@ -23,15 +23,6 @@ Refer to [this page](https://platform.openai.com/docs/api-reference/authenticati
 ### System
 
 You need enough VRAM and DRAM capacity to load models and perform inferences with them.
-
-## How to play
-
-1. Run ```main.py``` to start the game.   
-2. Click the ```New Game``` button and provide necessary information for story generation.
-3. Click the ```Confirm``` button
-4. Wait for texts, images, and audios to be generated.
-5. Enter your response in the entry below and click the ```Send``` button.
-6. New texts, images, and audios will be generated. Return to step 5.
 
 ## Images
 

@@ -52,13 +52,14 @@ class AppController():
         dialog.destroy()
 
     def _new_game_helper(self, information):
-        text, context_1, context_2 = self.model.new_game(*information)
+        main_text, universe, answer = self.model.new_game(*information)
         self._sync_main_text()
-        # create images
-        threading.Thread(target=self._create_and_replace_image, args=(context_1,)).start()
-        threading.Thread(target=self._create_and_replace_image, args=(context_2,)).start()
+        # create image
+        threading.Thread(target=self._create_and_replace_image, args=(universe,)).start()
         # create sound
-        threading.Thread(target=self._create_and_save_music, args=(text,)).start()
+        threading.Thread(target=self._create_and_save_music, args=(universe + answer,)).start()
+        # create image
+        threading.Thread(target=self._create_and_replace_image, args=(main_text,)).start()
         self._enable_all_buttons()
 
     def send(self):

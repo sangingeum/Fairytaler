@@ -25,7 +25,7 @@ class TextCreator:
             return answer, response['usage']['total_tokens']
         return answer
 
-    def create_image_prompt(self, prompt="Create an image that depicts a cyberpunk city", temperature=0.5):
+    def create_image_prompt(self, prompt="Create an image that depicts a cyberpunk city", temperature=0.2):
         messages = [{"role": "user", "content": prompt}]
         functions = [
             {

@@ -14,7 +14,7 @@ from PIL import Image
 # 16k 컨텍스트를 넘어서도 내용이 이어지게
 # 상태표시(생성중, 대기중 등)
 # 로고 만들기
-# 음성 개선, GPT4사용, 일관성 있는 이미지 생성, 랜덤 이벤트, 마지막/첫 음성, 마지막/첫 이미지
+# 음성 개선, GPT4사용, 랜덤 이벤트, 마지막/첫 음성, 마지막/첫 이미지
 
 
 class AppModel:
@@ -122,12 +122,9 @@ The universe the player is in is like this:
         assistant_answer = self.text_creator.chat_completion_with_message(self.messages)
         self.messages.append({"role": "assistant", "content": assistant_answer})
         self.waiting_user_input = True
-        main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"],
-                                              assistant_answer)
-        context_1 = self.image_generation_prompt.format(self.universe)
-        context_2 = self.image_generation_prompt.format(assistant_answer)
+        main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"], assistant_answer)
         self.main_text = main_text
-        return main_text, context_1, context_2
+        return main_text, self.universe, assistant_answer
 
     def process_user_text(self, user_prompt):
         if self.waiting_user_input:

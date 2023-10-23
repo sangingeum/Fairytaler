@@ -223,23 +223,27 @@ The universe the player is in is like this:
             except:
                 return False
 
+    # pause, unpause, load and start
     def play_music(self):
         try:
             if self.mixer.get_pos() == -1:
                 self.mixer.play()
+                return "unpause", None
             else:
                 if self.mixer.get_busy():
                     self.mixer.pause()
+                    return "pause", None
                 else:
                     self.mixer.unpause()
+                    return "unpause", None
         except:
             success, index = self.load_first_music()
             if success:
                 self.play_music()
-                return True, index
+                return "load", index
             else:
                 print("no music detected")
-        return False, ""
+        return "error", ""
 
     def save(self):
         try:

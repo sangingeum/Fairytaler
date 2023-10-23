@@ -165,6 +165,9 @@ class AppGUI(customtkinter.CTk):
     def change_music_label(self, text):
         self.music_status_label.configure(text=text)
 
+    def change_music_play_button_label(self, text):
+        self.music_play_button.configure(text=text)
+
     def disable_all_buttons(self):
         self.send_button.configure(state="disabled")
         self.save_button.configure(state="disabled")
@@ -207,6 +210,7 @@ class AppGUI(customtkinter.CTk):
 
     def set_music_next_button_listener(self, command):
         self.music_next_button.configure(command=command)
+
 # NewGameDialog is popped up when the new game button is clicked
 class NewGameDialog(customtkinter.CTkToplevel):
     def __init__(self, root):

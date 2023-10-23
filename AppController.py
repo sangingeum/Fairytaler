@@ -95,14 +95,13 @@ class AppController():
         self.view.update_queue.put({"function": self.view.change_progress_bar_value, "arg": progress})
         # auto play next sound
         for event in pygame.event.get():
-            if self.view.music_keep_playing_toggle.get():
-                if event.type == self.model.MUSIC_END:
-                    success, index = self.model.load_next_music()
-                    if success:
-                        print('auto play next music')
-                        self._change_music_label(f"Status: Playing {index}.wav")
-                        self.music_play()
-
+            if event.type == self.model.MUSIC_END:
+                if self.view.music_keep_playing_toggle.get():
+                    print('auto play next music')
+                    self.music_next()
+                    self.music_play()
+                else:
+                    self._change_music_play_button_label("▶")
 
     def _create_and_save_music(self, text):
         self.model.create_and_save_music(text)
@@ -118,6 +117,9 @@ class AppController():
 
     def _change_music_label(self, text):
         self.view.update_queue.put({"function": self.view.change_music_label, "arg": text})
+
+    def _change_music_play_button_label(self, text):
+        self.view.update_queue.put({"function": self.view.change_music_play_button_label, "arg": text})
 
     def image_prev(self):
         self.view.disable_all_buttons()
@@ -138,13 +140,19 @@ class AppController():
         success, index = self.model.load_prev_music()
         if success:
             self._change_music_label(f"Status: Playing {index}.wav")
+            self._change_music_play_button_label("▶")
         self.view.enable_all_buttons()
 
     def music_play(self):
         self.view.disable_all_buttons()
-        loaded, index = self.model.play_music()
-        if loaded:
+        flag, index = self.model.play_music()
+        if flag == "load":
             self._change_music_label(f"Status: Playing {index}.wav")
+            self._change_music_play_button_label("=")
+        elif flag == "unpause":
+            self._change_music_play_button_label("=")
+        elif flag == "pause":
+            self._change_music_play_button_label("▶")
         self.view.enable_all_buttons()
 
     def music_next(self):
@@ -152,6 +160,7 @@ class AppController():
         success, index = self.model.load_next_music()
         if success:
             self._change_music_label(f"Status: Playing {index}.wav")
+            self._change_music_play_button_label("▶")
         self.view.enable_all_buttons()
 
     def music_first(self):

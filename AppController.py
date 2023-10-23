@@ -38,8 +38,6 @@ class AppController():
             self.view.replace_main_text(self.model.main_text)
             self.view.replace_image(self.model.get_last_image())
             self.music_first()
-
-
         self.view.enable_all_buttons()
 
     def new_game(self):
@@ -66,11 +64,11 @@ class AppController():
     def send(self):
         self.view.disable_all_buttons()
         user_prompt = self.view.user_textbox.get("0.0", "end").strip()
+        print(user_prompt)
         if user_prompt != "":
             threading.Thread(target=self._send_helper, args=(user_prompt,)).start()
         else:
             self.view.enable_all_buttons()
-
 
     def _send_helper(self, user_prompt):
         if self.model.waiting_user_input:
@@ -79,7 +77,8 @@ class AppController():
         answer = self.model.process_user_text(user_prompt)
         if answer is not None:
             # create image and sound
-            threading.Thread(target=self._create_and_replace_image, args=(answer,)).start()
+            #threading.Thread(target=self._create_and_replace_image, args=(answer,)).start()
+            threading.Thread(target=self._create_and_replace_image, args=(self.model.main_text,)).start()
             threading.Thread(target=self._create_and_save_music, args=(answer,)).start()
             self._sync_main_text()
         self._enable_all_buttons()
@@ -91,15 +90,16 @@ class AppController():
 
     def music_progress_bar_update(self):
         # progress bar update
-        progress = 0 if self.model.mixer.get_pos() == -1 else (self.model.mixer.get_pos() / 1000.0 / self.model.music_length)
+        progress = 0 if self.model.mixer.get_pos() == -1 or self.model.music_length == 0 else (self.model.mixer.get_pos() / 1000.0 / self.model.music_length)
         self.view.update_queue.put({"function": self.view.change_progress_bar_value, "arg": progress})
-        # auto play next sound
+        # autoplay next sound
         for event in pygame.event.get():
             if event.type == self.model.MUSIC_END:
                 if self.view.music_keep_playing_toggle.get():
                     print('auto play next music')
-                    self.music_next()
-                    self.music_play()
+                    success = self.music_next()
+                    if success:
+                        self.music_play()
                 else:
                     self._change_music_play_button_label("▶")
 
@@ -162,6 +162,7 @@ class AppController():
             self._change_music_label(f"Status: Playing {index}.wav")
             self._change_music_play_button_label("▶")
         self.view.enable_all_buttons()
+        return success
 
     def music_first(self):
         self.view.disable_all_buttons()

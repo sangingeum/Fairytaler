@@ -175,6 +175,10 @@ class AppGUI(customtkinter.CTk):
         self.new_game_button.configure(state="disabled")
         self.image_prev_button.configure(state="disabled")
         self.image_next_button.configure(state="disabled")
+        #self.music_play_button.configure(state="disabled")
+        #self.music_keep_playing_toggle.configure(state="disabled")
+        #self.music_prev_button.configure(state="disabled")
+        #self.music_next_button.configure(state="disabled")
 
     def enable_all_buttons(self):
         self.send_button.configure(state="normal")
@@ -183,7 +187,10 @@ class AppGUI(customtkinter.CTk):
         self.new_game_button.configure(state="normal")
         self.image_prev_button.configure(state="normal")
         self.image_next_button.configure(state="normal")
-
+        #self.music_play_button.configure(state="normal")
+        #self.music_keep_playing_toggle.configure(state="normal")
+        #self.music_prev_button.configure(state="normal")
+        #self.music_next_button.configure(state="normal")
     def set_save_button_listener(self, command):
         self.save_button.configure(command=command)
 

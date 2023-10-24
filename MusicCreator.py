@@ -10,9 +10,10 @@ from TTS.api import TTS
 class MusicCreator:
     def __init__(self, use_tortoise=True):
         self.use_tortoise = use_tortoise
+        self.device = "cuda"
         if use_tortoise:
-            device = "cuda"
-            self.model = TTS("tts_models/en/ljspeech/tacotron2-DDC").to(device)
+            self.model = TTS("tts_models/en/ljspeech/tacotron2-DDC_ph").to(self.device) #"tts_models/en/ljspeech/tacotron2-DDC_ph", 22050
+            self.sample_rate = 22050
         else:
             nltk.download('punkt')
             self.processor = AutoProcessor.from_pretrained("suno/bark-small")
@@ -33,10 +34,13 @@ class MusicCreator:
                 sentences = nltk.sent_tokenize(prompt)
                 if self.use_tortoise:
                     for sentence in sentences:
-                        yield np.array(self.model.tts(text=sentence), dtype=np.float32), 22050
+                        audio_array = torch.from_numpy(np.array(self.model.tts(text=sentence)).reshape((1, -1))).type(torch.float32).to(self.device)
+                        #audio_array = self.denoiser(audio_array[None])[0]
+                        audio_array = audio_array.cpu().numpy().flatten()
+                        yield audio_array, self.sample_rate
                 else:
                     for sentence in sentences:
-                        input = self.processor(sentence, voice_preset=self.voice_preset).to("cuda")
+                        input = self.processor(sentence, voice_preset=self.voice_preset).to(self.device)
                         audio_array = self.model.generate(**input).type(torch.float32).reshape((1, -1))
                         audio_array = self.denoiser(audio_array[None])[0]
                         audio_array = audio_array.cpu().numpy().flatten()

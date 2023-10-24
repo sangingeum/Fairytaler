@@ -14,6 +14,7 @@ from PIL import Image
 # 16k 컨텍스트를 넘어서도 내용이 이어지게
 # 상태표시(생성중, 대기중 등)
 # 로고 만들기
+# 음성 개선, GPT4사용,  마지막/첫 음성, 마지막/첫 이미지
 
 class AppModel:
     def __init__(self):
@@ -37,6 +38,7 @@ class AppModel:
         self.save_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "saves")
 
         self.text_creator = TextCreator()
+        self.summarize_at = 10000 # When the number of tokens of self.main_text is more than this, the model will summarize the text
         # pygame
         pygame.init()
         self.mixer = pygame.mixer.music
@@ -49,10 +51,11 @@ The fictional universe of the story is like this : {}
 Introduce the fictional universe while not mentioning any named characters.
 To enhance immersion, avoid mentioning readers and the term 'fictional universe'.
 """
-        self.image_prompt_generator = """Make an illustration for this text:
+        self.image_generation_prompt = """Create an illustration for the last part of this text, primarily using the last few paragraphs:
 "{}" 
 """
-        self.game_start_command = """I want you to act as the GM of a TRPG game based on the universe and characters written below.
+
+        self.game_start_prompt = """I want you to act as the GM of a TRPG game based on the universe and characters written below.
 When a character attempts critical actions such as attacks, escapes, and evades, you need to determine the success or failure of the attempt by rolling a 1d20 die.
 A roll of 10 or above indicates success, while anything below 10 is a failure.
 Equipments, companions, relationships, and status of {0} can change during the playthrough. It's your responsibility to update them correctly.
@@ -67,14 +70,37 @@ Fictional universe:
 Protagonist information:
 {2}
 """
-        self.equipment_generation_command = """Create an equipable item for a player whose race is {0} and background is {1}.
+        self.game_continuation_prompt = """I want you to act as the GM of a TRPG game based on the universe and characters written below.
+When a character attempts critical actions such as attacks, escapes, and evades, you need to determine the success or failure of the attempt by rolling a 1d20 die.
+A roll of 10 or above indicates success, while anything below 10 is a failure.
+Equipments, companions, relationships, and status of {0} can change during the playthrough. It's your responsibility to update them correctly.
+To enhance immersion, avoid mentioning the term 'fictional universe'.
+The GM do not decide {0}'s action. You can ask {0} when you need to decide his/her action. 
+I'll play as {0}.
+Start by introducing a plausible event that happens to {0}.
+
+Fictional universe:
+{1}
+
+Previous story:
+{2}
+
+Protagonist information:
+{3}
+"""
+
+        self.equipment_generation_prompt = """Create an equipable item for a player whose race is {0} and background is {1}.
 The universe the player is in is like this: 
 {2}
 """
-        self.consumable_generation_command = """Create a consumable item for a player whose race is {0} and background is {1}.
+        self.consumable_generation_prompt = """Create a consumable item for a player whose race is {0} and background is {1}.
 The universe the player is in is like this: 
 {2}
 """
+        self.summarize_prompt = """Provide a summary of the given text. This should include key events, decisions, and character actions. Keep it concise but informative:
+"{0}"      
+"""
+
         self.new_game_text = """{}
         
 [System] You received a(an) {}, {}. It can be equipped on your {}.
@@ -104,10 +130,8 @@ The universe the player is in is like this:
         os.makedirs("saves/" + save_name)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
-            item_future = executor.submit(self.text_creator.create_equipable_item,
-                                          self.equipment_generation_command.format(race, background, universe))
-            universe_future = executor.submit(self.text_creator.chat_completion_with_string,
-                                              self.fictional_universe_expander.format(self.universe))
+            item_future = executor.submit(self.text_creator.create_equipable_item, self.equipment_generation_prompt.format(race, background, universe))
+            universe_future = executor.submit(self.text_creator.chat_completion_with_string, self.fictional_universe_expander.format(self.universe))
         item = item_future.result()
         # create the protagonist
         character = Character(name=name, id=0, relationships=[], companions=[], consumables=[], equipments=[],
@@ -116,32 +140,42 @@ The universe the player is in is like this:
         self.protagonist = character
         self.universe = universe_future.result()
         # init message and get answer
-        user_prompt = self.game_start_command.format(self.protagonist.name, self.universe, self.protagonist.describe())
+        user_prompt = self.game_start_prompt.format(self.protagonist.name, self.universe, self.protagonist.describe())
         self.messages.append({"role": "user", "content": user_prompt})
         assistant_answer = self.text_creator.chat_completion_with_message(self.messages)
         self.messages.append({"role": "assistant", "content": assistant_answer})
         self.waiting_user_input = True
-        main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"],
-                                              assistant_answer)
-        context_1 = self.image_prompt_generator.format(self.universe)
-        context_2 = self.image_prompt_generator.format(assistant_answer)
+        main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"], assistant_answer)
         self.main_text = main_text
-        return main_text, context_1, context_2
+        return main_text, self.universe, assistant_answer
 
     def process_user_text(self, user_prompt):
         if self.waiting_user_input:
-            self.main_text += "\n\n[{}] ".format(self.protagonist.name) + user_prompt
             self.waiting_user_input = False
+            self.main_text += "\n\n[{}] ".format(self.protagonist.name) + user_prompt
             self.messages.append({"role": "user", "content": user_prompt})
             assistant_answer = self.text_creator.chat_completion_with_message(self.messages)
+            # summarize if necessary
+            if self.should_summarize():
+                self._summarize()
             self.messages.append({"role": "assistant", "content": assistant_answer})
-            self.main_text += "\n\n" + assistant_answer
+            self.main_text += "\n\n" + assistant_answer.replace("||-)", "")
             self.waiting_user_input = True
             return assistant_answer
         return None
 
+    def should_summarize(self) -> bool:
+        return self.text_creator.count_token(self.main_text) >= self.summarize_at
+
+    def _summarize(self):
+        # main text, messages
+        summary = self.text_creator.chat_completion_with_string(self.summarize_prompt.format(self.main_text))
+        self.messages.clear()
+        self.main_text = summary
+        self.messages.append({"role": "user", "content": self.game_continuation_prompt.format(self.protagonist.name, self.universe, summary, self.protagonist.describe())})
+
     def create_and_save_image(self, context):
-        image_prompt = self.text_creator.create_image_prompt(self.image_prompt_generator.format(context))
+        image_prompt = self.text_creator.create_image_prompt(self.image_generation_prompt.format(context))
         with self.image_list_lock:
             cur_count = self.image_count
             self.image_count += 1
@@ -157,8 +191,11 @@ The universe the player is in is like this:
                 self.music_count += 1
             signal, rate = music
             write_wav(self.save_dir + f"{cur_count}.wav", rate=rate, data=signal)
+            print("saving music " + f"{cur_count}.wav")
+
 
     def get_prev_image(self):
+        #self.game_continuation_prompt
         index = self.image_index - 1
         image = self.get_image(index)
         if image is not None:
@@ -223,23 +260,27 @@ The universe the player is in is like this:
             except:
                 return False
 
+    # pause, unpause, load and start
     def play_music(self):
         try:
             if self.mixer.get_pos() == -1:
                 self.mixer.play()
+                return "unpause", None
             else:
                 if self.mixer.get_busy():
                     self.mixer.pause()
+                    return "pause", None
                 else:
                     self.mixer.unpause()
+                    return "unpause", None
         except:
             success, index = self.load_first_music()
             if success:
                 self.play_music()
-                return True, index
+                return "load", index
             else:
                 print("no music detected")
-        return False, ""
+        return "error", ""
 
     def save(self):
         try:
@@ -261,7 +302,8 @@ The universe the player is in is like this:
                 print("Saving Complete")
                 return True
             return False
-        except:
+        except Exception as e:
+            print(e)
             return False
 
     def load(self, path):
@@ -279,9 +321,11 @@ The universe the player is in is like this:
                 self.music_count = pickle.load(file)
                 self.music_length = pickle.load(file)
                 self.save_dir = pickle.load(file)
+            print("music count: " + str(self.music_count))
             print("Loading Complete")
             return True
-        except:
+        except Exception as e:
+            print(e)
             return False
 
     def exit(self):

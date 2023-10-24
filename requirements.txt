@@ -12,3 +12,4 @@ customtkinter
 optimum
 denoiser
 pygame
+tiktoken

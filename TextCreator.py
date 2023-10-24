@@ -1,21 +1,25 @@
 import json
 import os
 import openai
-
+import tiktoken
 
 class TextCreator:
-    def __init__(self):
+    def __init__(self, model="gpt-3.5-turbo-16k"):
         openai.api_key = os.getenv("OPENAI_API_KEY")
-        self.model = "gpt-3.5-turbo-16k" # ["gpt-4", "gpt-3.5-turbo"]
+        self.model = model #["gpt-4", "gpt-3.5-turbo"]
+        self.encoder = tiktoken.encoding_for_model(model)
 
-    def chat_completion_with_string(self, user_prompt, system_prompt=None, return_token=False):
+    def count_token(self, text : str) -> int:
+        return len(self.encoder.encode(text))
+
+    def chat_completion_with_string(self, user_prompt, system_prompt=None, return_token=False) -> str:
         messages = []
         if system_prompt is not None:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": user_prompt})
         return self.chat_completion_with_message(messages=messages, return_token=return_token)
 
-    def chat_completion_with_message(self, messages, return_token=False):
+    def chat_completion_with_message(self, messages, return_token=False) -> str:
         response = openai.ChatCompletion.create(
             model=self.model,
             messages=messages
@@ -25,7 +29,7 @@ class TextCreator:
             return answer, response['usage']['total_tokens']
         return answer
 
-    def create_image_prompt(self, prompt="Create an image that depicts a cyberpunk city"):
+    def create_image_prompt(self, prompt="Create an image that depicts a cyberpunk city", temperature=0.2):
         messages = [{"role": "user", "content": prompt}]
         functions = [
             {
@@ -57,6 +61,7 @@ class TextCreator:
             messages=messages,
             functions=functions,
             function_call="auto",  # auto is default, but we'll be explicit
+            temperature=temperature
         )
         response_message = response["choices"][0]["message"]
         function_args = json.loads(response_message["function_call"]["arguments"])

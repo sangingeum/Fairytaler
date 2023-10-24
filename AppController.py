@@ -1,6 +1,6 @@
 from AppGUI import *
 from AppModel import *
-from tkinter import messagebox, filedialog
+from tkinter import filedialog
 
 class AppController():
     def __init__(self, view: AppGUI, model: AppModel):
@@ -38,8 +38,6 @@ class AppController():
             self.view.replace_main_text(self.model.main_text)
             self.view.replace_image(self.model.get_last_image())
             self.music_first()
-
-
         self.view.enable_all_buttons()
 
     def new_game(self):
@@ -54,23 +52,24 @@ class AppController():
         dialog.destroy()
 
     def _new_game_helper(self, information):
-        text, context_1, context_2 = self.model.new_game(*information)
+        main_text, universe, answer = self.model.new_game(*information)
         self._sync_main_text()
-        # create images
-        threading.Thread(target=self._create_and_replace_image, args=(context_1,)).start()
-        threading.Thread(target=self._create_and_replace_image, args=(context_2,)).start()
+        # create image
+        threading.Thread(target=self._create_and_replace_image, args=(universe,)).start()
         # create sound
-        threading.Thread(target=self._create_and_save_music, args=(text,)).start()
+        threading.Thread(target=self._create_and_save_music, args=(universe + answer,)).start()
+        # create image
+        threading.Thread(target=self._create_and_replace_image, args=(main_text,)).start()
         self._enable_all_buttons()
 
     def send(self):
         self.view.disable_all_buttons()
         user_prompt = self.view.user_textbox.get("0.0", "end").strip()
+        print(user_prompt)
         if user_prompt != "":
             threading.Thread(target=self._send_helper, args=(user_prompt,)).start()
         else:
             self.view.enable_all_buttons()
-
 
     def _send_helper(self, user_prompt):
         if self.model.waiting_user_input:
@@ -78,8 +77,9 @@ class AppController():
             self._sync_main_text()
         answer = self.model.process_user_text(user_prompt)
         if answer is not None:
-            # create image and sound
-            threading.Thread(target=self._create_and_replace_image, args=(answer,)).start()
+            # create image
+            threading.Thread(target=self._create_and_replace_image, args=(self.model.main_text,)).start()
+            # create sound
             threading.Thread(target=self._create_and_save_music, args=(answer,)).start()
             self._sync_main_text()
         self._enable_all_buttons()
@@ -91,18 +91,18 @@ class AppController():
 
     def music_progress_bar_update(self):
         # progress bar update
-        progress = 0 if self.model.mixer.get_pos() == -1 else (self.model.mixer.get_pos() / 1000.0 / self.model.music_length)
+        progress = 0 if self.model.mixer.get_pos() == -1 or self.model.music_length == 0 else (self.model.mixer.get_pos() / 1000.0 / self.model.music_length)
         self.view.update_queue.put({"function": self.view.change_progress_bar_value, "arg": progress})
-        # auto play next sound
+        # autoplay next sound
         for event in pygame.event.get():
-            if self.view.music_keep_playing_toggle.get():
-                if event.type == self.model.MUSIC_END:
-                    success, index = self.model.load_next_music()
+            if event.type == self.model.MUSIC_END:
+                if self.view.music_keep_playing_toggle.get():
+                    print('auto play next music')
+                    success = self.music_next()
                     if success:
-                        print('auto play next music')
-                        self._change_music_label(f"Status: Playing {index}.wav")
                         self.music_play()
-
+                else:
+                    self._change_music_play_button_label("▶")
 
     def _create_and_save_music(self, text):
         self.model.create_and_save_music(text)
@@ -118,6 +118,9 @@ class AppController():
 
     def _change_music_label(self, text):
         self.view.update_queue.put({"function": self.view.change_music_label, "arg": text})
+
+    def _change_music_play_button_label(self, text):
+        self.view.update_queue.put({"function": self.view.change_music_play_button_label, "arg": text})
 
     def image_prev(self):
         self.view.disable_all_buttons()
@@ -138,13 +141,19 @@ class AppController():
         success, index = self.model.load_prev_music()
         if success:
             self._change_music_label(f"Status: Playing {index}.wav")
+            self._change_music_play_button_label("▶")
         self.view.enable_all_buttons()
 
     def music_play(self):
         self.view.disable_all_buttons()
-        loaded, index = self.model.play_music()
-        if loaded:
+        flag, index = self.model.play_music()
+        if flag == "load":
             self._change_music_label(f"Status: Playing {index}.wav")
+            self._change_music_play_button_label("=")
+        elif flag == "unpause":
+            self._change_music_play_button_label("=")
+        elif flag == "pause":
+            self._change_music_play_button_label("▶")
         self.view.enable_all_buttons()
 
     def music_next(self):
@@ -152,7 +161,9 @@ class AppController():
         success, index = self.model.load_next_music()
         if success:
             self._change_music_label(f"Status: Playing {index}.wav")
+            self._change_music_play_button_label("▶")
         self.view.enable_all_buttons()
+        return success
 
     def music_first(self):
         self.view.disable_all_buttons()

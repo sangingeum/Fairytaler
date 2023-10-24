@@ -8,8 +8,9 @@ compel
 scipy
 bark
 nltk
+tiktoken
+TTS
 customtkinter
 optimum
 denoiser
 pygame
-tiktoken

@@ -1,12 +1,16 @@
 import json
 import os
 import openai
-
+import tiktoken
 
 class TextCreator:
-    def __init__(self):
+    def __init__(self, model="gpt-3.5-turbo-16k"):
         openai.api_key = os.getenv("OPENAI_API_KEY")
-        self.model = "gpt-3.5-turbo-16k" # ["gpt-4", "gpt-3.5-turbo"]
+        self.model = model #["gpt-4", "gpt-3.5-turbo"]
+        self.encoder = tiktoken.encoding_for_model(model)
+
+    def count_token(self, text : str) -> int:
+        return len(self.encoder.encode(text))
 
     def chat_completion_with_string(self, user_prompt, system_prompt=None, return_token=False) -> str:
         messages = []

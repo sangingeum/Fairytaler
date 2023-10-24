@@ -1,6 +1,6 @@
 from AppGUI import *
 from AppModel import *
-from tkinter import messagebox, filedialog
+from tkinter import filedialog
 
 class AppController():
     def __init__(self, view: AppGUI, model: AppModel):
@@ -77,9 +77,9 @@ class AppController():
             self._sync_main_text()
         answer = self.model.process_user_text(user_prompt)
         if answer is not None:
-            # create image and sound
-            #threading.Thread(target=self._create_and_replace_image, args=(answer,)).start()
+            # create image
             threading.Thread(target=self._create_and_replace_image, args=(self.model.main_text,)).start()
+            # create sound
             threading.Thread(target=self._create_and_save_music, args=(answer,)).start()
             self._sync_main_text()
         self._enable_all_buttons()

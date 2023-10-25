@@ -1,3 +1,5 @@
+import time
+
 from AppGUI import *
 from AppModel import *
 from tkinter import filedialog
@@ -52,14 +54,16 @@ class AppController():
         dialog.destroy()
 
     def _new_game_helper(self, information):
-        main_text, universe, answer = self.model.new_game(*information)
+        # universe -> first incident
+        texts = ""
+        for text in self.model.new_game(*information):
+            self._sync_main_text()
+            texts += text + "\n"
+            # create image
+            threading.Thread(target=self._create_and_replace_image, args=(texts,)).start()
+            # create sound
+            threading.Thread(target=self._create_and_save_music, args=(texts,)).start()
         self._sync_main_text()
-        # create image
-        threading.Thread(target=self._create_and_replace_image, args=(universe,)).start()
-        # create sound
-        threading.Thread(target=self._create_and_save_music, args=(universe + answer,)).start()
-        # create image
-        threading.Thread(target=self._create_and_replace_image, args=(main_text,)).start()
         self._enable_all_buttons()
 
     def send(self):
@@ -84,7 +88,8 @@ class AppController():
             self._sync_main_text()
         self._enable_all_buttons()
 
-    def _create_and_replace_image(self, context):
+    def _create_and_replace_image(self, context, delay_seconds=0):
+        time.sleep(delay_seconds)
         index = self.model.create_and_save_image(context)
         self.view.update_queue.put({"function": self.view.replace_image,
                                     "arg": self.model.get_image(index)})

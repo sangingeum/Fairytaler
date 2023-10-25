@@ -21,6 +21,7 @@ class ImageCreator:
     def create(self, prompt, negative_prompt) -> PIL.Image.Image:
         prompt = self.default_prompt + prompt
         negative_prompt = self.default_negative_prompt + negative_prompt
+        print("Creating Image : prompt {}, negative prompt {}".format(prompt, negative_prompt))
         conditioning = self.compel.build_conditioning_tensor(prompt)
         negative_conditioning = self.compel.build_conditioning_tensor(negative_prompt)
         [conditioning, negative_conditioning] = self.compel.pad_conditioning_tensors_to_same_length(

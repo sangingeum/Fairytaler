@@ -138,6 +138,8 @@ The universe the player is in is like this:
                               race=race, gender=gender)
         self.protagonist = character
         self.universe = universe_future.result()
+        self.main_text = self.universe
+        yield self.universe
         # init message and get answer
         user_prompt = self.game_start_prompt.format(self.protagonist.name, self.universe, self.protagonist.describe())
         self.messages.append({"role": "user", "content": user_prompt})
@@ -146,7 +148,7 @@ The universe the player is in is like this:
         self.waiting_user_input = True
         main_text = self.new_game_text.format(self.universe, item["name"], item["description"], item["slot"], assistant_answer)
         self.main_text = main_text
-        return main_text, self.universe, assistant_answer
+        yield assistant_answer
 
     def process_user_text(self, user_prompt):
         if self.waiting_user_input:
@@ -176,10 +178,10 @@ The universe the player is in is like this:
     def create_and_save_image(self, context):
         image_prompt = self.text_creator.create_image_prompt(self.image_generation_prompt.format(context))
         with self.image_list_lock:
+            image = self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
             cur_count = self.image_count
             self.image_count += 1
-        image = self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
-        image.save(self.save_dir + f"{cur_count}.jpg")
+            image.save(self.save_dir + f"{cur_count}.jpg")
         return cur_count
 
     def create_and_save_music(self, text):

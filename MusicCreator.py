@@ -8,11 +8,11 @@ import threading
 from TTS.api import TTS
 
 class MusicCreator:
-    def __init__(self, use_tortoise=True):
-        self.use_tortoise = use_tortoise
+    def __init__(self, use_tacotron=True):
+        self.use_tacotron = use_tacotron
         self.device = "cuda"
-        if use_tortoise:
-            self.model = TTS("tts_models/en/ljspeech/tacotron2-DDC_ph").to(self.device) #"tts_models/en/ljspeech/tacotron2-DDC_ph", 22050
+        if use_tacotron:
+            self.model = TTS("tts_models/en/ljspeech/tacotron2-DDC_ph").to(self.device) #"tts_models/en/ljspeech/tacotron2-DDC_ph", 22050, apache-2.0
             self.sample_rate = 22050
         else:
             nltk.download('punkt')
@@ -32,7 +32,7 @@ class MusicCreator:
         with self.creation_lock:
             with torch.inference_mode():
                 sentences = nltk.sent_tokenize(prompt)
-                if self.use_tortoise:
+                if self.use_tacotron:
                     for sentence in sentences:
                         audio_array = torch.from_numpy(np.array(self.model.tts(text=sentence)).reshape((1, -1))).type(torch.float32).to(self.device)
                         #audio_array = self.denoiser(audio_array[None])[0]

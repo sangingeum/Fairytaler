@@ -62,7 +62,7 @@ class AppController():
             # create image
             threading.Thread(target=self._create_and_replace_image, args=(texts,)).start()
             # create sound
-            threading.Thread(target=self._create_and_save_music, args=(texts,)).start()
+            threading.Thread(target=self._create_and_save_music, args=(text,)).start()
         self._sync_main_text()
         self._enable_all_buttons()
 

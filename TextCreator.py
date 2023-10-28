@@ -100,7 +100,6 @@ class TextCreator:
         function_args = json.loads(response_message["function_call"]["arguments"])
         return function_args
 
-    # need = "is a warrior", "is undead" 등 다양하게 사용 가능
     def create_equipable_item(self,
             prompt="Create an equipable item from the D&D universe considering that the player is a wizard."):
         messages = [{"role": "user", "content": prompt}]

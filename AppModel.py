@@ -37,7 +37,7 @@ class AppModel:
         self.save_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "saves")
 
         self.text_creator = TextCreator()
-        self.summarize_at = 10000 # When the number of tokens of self.main_text is more than this, the model will summarize the text
+        self.summarize_at = 10000 # When the number of tokens of self.main_text exceeds this limit, the model will summarize the text
         # pygame
         pygame.init()
         self.mixer = pygame.mixer.music
@@ -176,12 +176,12 @@ The universe the player is in is like this:
         self.messages.append({"role": "user", "content": self.game_continuation_prompt.format(self.protagonist.name, self.universe, summary, self.protagonist.describe())})
 
     def create_and_save_image(self, context):
-        image_prompt = self.text_creator.create_image_prompt(self.image_generation_prompt.format(context))
         with self.image_list_lock:
-            image = self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
             cur_count = self.image_count
             self.image_count += 1
-            image.save(self.save_dir + f"{cur_count}.jpg")
+        image_prompt = self.text_creator.create_image_prompt(self.image_generation_prompt.format(context))
+        image = self.image_creator.create(image_prompt["prompt"], image_prompt["negative_prompt"])
+        image.save(self.save_dir + f"{cur_count}.jpg")
         return cur_count
 
     def create_and_save_music(self, text):
@@ -196,7 +196,6 @@ The universe the player is in is like this:
 
 
     def get_prev_image(self):
-        #self.game_continuation_prompt
         index = self.image_index - 1
         image = self.get_image(index)
         if image is not None:

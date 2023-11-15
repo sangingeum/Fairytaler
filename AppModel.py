@@ -47,8 +47,8 @@ class AppModel:
         # prompts
         self.fictional_universe_expander = """I want you to act as a novel writer.
 The fictional universe of the story is like this : {}
-Introduce the fictional universe while not mentioning any named characters.
-To enhance immersion, avoid mentioning readers and the term 'fictional universe'.
+Expand and introduce the fictional universe while not mentioning any named characters.
+To enhance immersion, avoid mentioning readers and the word 'fictional' in your text.
 """
         self.image_generation_prompt = """Create an illustration for the last part of this text, primarily using the last few paragraphs:
 "{}" 
@@ -59,7 +59,7 @@ When a character attempts critical actions such as attacks, escapes, and evades,
 A roll of 10 or above indicates success, while anything below 10 is a failure.
 Equipments, companions, relationships, and status of {0} can change during the playthrough. It's your responsibility to update them correctly.
 To enhance immersion, avoid mentioning the term 'fictional universe'.
-The GM do not decide {0}'s action. You can ask {0} when you need to decide his/her action. 
+The GM do not decide {0}'s action. You should ask {0} when you need to decide his/her action. 
 I'll play as {0}.
 Start by introducing a plausible event that happens to {0}.
 
@@ -74,7 +74,7 @@ When a character attempts critical actions such as attacks, escapes, and evades,
 A roll of 10 or above indicates success, while anything below 10 is a failure.
 Equipments, companions, relationships, and status of {0} can change during the playthrough. It's your responsibility to update them correctly.
 To enhance immersion, avoid mentioning the term 'fictional universe'.
-The GM do not decide {0}'s action. You can ask {0} when you need to decide his/her action. 
+The GM do not decide {0}'s action. You should ask {0} when you need to decide his/her action. 
 I'll play as {0}.
 Start by introducing a plausible event that happens to {0}.
 

@@ -1,5 +1,4 @@
 import time
-
 from AppGUI import *
 from AppModel import *
 from tkinter import filedialog
@@ -36,7 +35,7 @@ class AppController():
         file_path = filedialog.askopenfilename(title="Load",
                                                initialdir=self.view.save_path,
                                                filetypes=filetypes)
-        if self.model.load(file_path):
+        if file_path != "" and self.model.load(file_path):
             self.view.replace_main_text(self.model.main_text)
             self.view.replace_image(self.model.get_last_image())
             self.music_first()

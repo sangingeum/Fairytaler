@@ -1,9 +1,9 @@
 import os.path
-from queue import Queue
-
 import customtkinter
+from queue import Queue
 from PIL import Image
 from tkinter import messagebox
+
 class AppGUI(customtkinter.CTk):
     def __init__(self):
         super().__init__()
@@ -225,12 +225,13 @@ class NewGameDialog(customtkinter.CTkToplevel):
         self.confirm = False
         self.title("New game")
         self.geometry("500x500")
+        self.geometry(f"{root.winfo_rootx()}+{root.winfo_rooty()}")
         self.frame = customtkinter.CTkFrame(self)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
-        # override x button
+        # Remove title bar
         self.protocol('WM_DELETE_WINDOW', self._cancel_button_clicked)
-
+        # Create buttons and labels
         self.frame.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="nsew")
 
         self.universe_label = customtkinter.CTkLabel(self.frame, text="Universe")
@@ -258,7 +259,7 @@ class NewGameDialog(customtkinter.CTkToplevel):
         self.confirm_button = customtkinter.CTkButton(self.frame, command=self._confirm_button_clicked, text="Confirm")
         self.cancel_button = customtkinter.CTkButton(self.frame, command=self._cancel_button_clicked, text="Cancel")
 
-        ### grid setting
+        # Set grid info
         self.frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 20), weight=1)
         self.frame.grid_rowconfigure(10, weight=100)
         self.frame.grid_columnconfigure((0, 1), weight=1)

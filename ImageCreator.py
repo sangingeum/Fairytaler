@@ -6,7 +6,7 @@ from diffusers import AutoencoderKL
 from diffusers import StableDiffusionPipeline, DPMSolverSinglestepScheduler
 
 class ImageCreator:
-    def __init__(self, torch_type=torch.float32):
+    def __init__(self, torch_type=torch.float16):
         self.pipe = StableDiffusionPipeline.from_pretrained("digiplay/AbsoluteReality_v1.8.1", torch_dtype=torch_type).to("cuda")
         self.pipe.scheduler = DPMSolverSinglestepScheduler.from_config(self.pipe.scheduler.config)
         self.pipe.vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=torch_type).to("cuda")

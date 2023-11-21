@@ -84,7 +84,7 @@ class AppGUI(customtkinter.CTk):
         self.image_frame.grid(row=0, column=2, columnspan=2, padx=(20, 20), pady=(20, 0), sticky="new")
 
         self.current_path = os.path.dirname(os.path.realpath(__file__))
-        self.image_path = os.path.join(self.current_path, "test_images")
+        self.image_path = os.path.join(self.current_path, "UI_Images")
         self.image = customtkinter.CTkImage(Image.open(os.path.join(self.image_path, "CustomTkinter_logo_single.png")),
                                             size=(512, 512))
 

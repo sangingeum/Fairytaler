@@ -1,11 +1,11 @@
 import json
 import os
-import openai
+from openai import OpenAI
 import tiktoken
 
 class TextCreator:
     def __init__(self, model="gpt-3.5-turbo-16k"):
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = model #["gpt-4", "gpt-3.5-turbo"]
         self.encoder = tiktoken.encoding_for_model(model)
 
@@ -20,14 +20,14 @@ class TextCreator:
         return self.chat_completion_with_message(messages=messages, return_token=return_token)
 
     def chat_completion_with_message(self, messages, return_token=False) -> str:
-        response = openai.ChatCompletion.create(
+        completion = self.client.chat.completions.create(
             model=self.model,
             messages=messages
         )
-        answer = response["choices"][0]["message"]["content"]
+        content = completion.choices[0].message.content
         if return_token:
-            return answer, response['usage']['total_tokens']
-        return answer
+            return content, completion.usage.total_tokens
+        return content
 
     def create_image_prompt(self, prompt="Create an image that depicts a cyberpunk city", temperature=0.2):
         messages = [{"role": "user", "content": prompt}]
@@ -56,15 +56,15 @@ class TextCreator:
                 },
             }
         ]
-        response = openai.ChatCompletion.create(
+        completion = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             functions=functions,
             function_call="auto",  # auto is default, but we'll be explicit
             temperature=temperature
         )
-        response_message = response["choices"][0]["message"]
-        function_args = json.loads(response_message["function_call"]["arguments"])
+        response_message = completion.choices[0].message
+        function_args = json.loads(response_message.function_call.arguments)
         return function_args
 
     def create_consumable_item(self,
@@ -90,14 +90,14 @@ class TextCreator:
                 },
             }
         ]
-        response = openai.ChatCompletion.create(
+        completion = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             functions=functions,
             function_call="auto",  # auto is default, but we'll be explicit
         )
-        response_message = response["choices"][0]["message"]
-        function_args = json.loads(response_message["function_call"]["arguments"])
+        response_message = completion.choices[0].message
+        function_args = json.loads(response_message.function_call.arguments)
         return function_args
 
     def create_equipable_item(self,
@@ -128,12 +128,21 @@ class TextCreator:
                 },
             }
         ]
-        response = openai.ChatCompletion.create(
+        completion = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             functions=functions,
             function_call="auto",  # auto is default, but we'll be explicit
         )
-        response_message = response["choices"][0]["message"]
-        function_args = json.loads(response_message["function_call"]["arguments"])
+        response_message = completion.choices[0].message
+        function_args = json.loads(response_message.function_call.arguments)
         return function_args
+
+
+if __name__ == "__main__":
+    # test TextCreator
+    creator = TextCreator()
+    response = creator.chat_completion_with_string("Good morning")
+    print(response)
+    response = creator.create_image_prompt()
+    print(response)

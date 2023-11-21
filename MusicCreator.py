@@ -11,11 +11,11 @@ class MusicCreator:
     def __init__(self, use_tacotron=True):
         self.use_tacotron = use_tacotron
         self.device = "cuda"
+        nltk.download('punkt')
         if use_tacotron:
             self.model = TTS("tts_models/en/ljspeech/tacotron2-DDC_ph").to(self.device) #"tts_models/en/ljspeech/tacotron2-DDC_ph", 22050, apache-2.0
             self.sample_rate = 22050
         else:
-            nltk.download('punkt')
             self.processor = AutoProcessor.from_pretrained("suno/bark-small")
             self.model = BetterTransformer.transform(
                 BarkModel.from_pretrained("suno/bark-small",

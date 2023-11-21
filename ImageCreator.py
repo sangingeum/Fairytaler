@@ -1,18 +1,15 @@
 import threading
-
 import PIL.Image
 import torch
 from compel import Compel
 from diffusers import AutoencoderKL
 from diffusers import StableDiffusionPipeline, DPMSolverSinglestepScheduler
 
-
 class ImageCreator:
-    def __init__(self):
-        self.pipe = StableDiffusionPipeline.from_pretrained("digiplay/AbsoluteReality_v1.8.1",
-                                                            torch_dtype=torch.float16).to("cuda")
+    def __init__(self, torch_type=torch.float32):
+        self.pipe = StableDiffusionPipeline.from_pretrained("digiplay/AbsoluteReality_v1.8.1", torch_dtype=torch_type).to("cuda")
         self.pipe.scheduler = DPMSolverSinglestepScheduler.from_config(self.pipe.scheduler.config)
-        self.pipe.vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=torch.float16).to("cuda")
+        self.pipe.vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=torch_type).to("cuda")
         self.compel = Compel(tokenizer=self.pipe.tokenizer, text_encoder=self.pipe.text_encoder)
         self.default_prompt = "photorealistic, 32k, shot on Canon EOS-1D X Mark III, "
         self.default_negative_prompt = "painting, drawing, sketch, cartoon, anime, manga, text, watermark, signature, label, logo, poor anatomy, terrible anatomy, bad hands, username, grayscale, low quality, worst quality, normal quality"
@@ -32,3 +29,11 @@ class ImageCreator:
                               num_inference_steps=30,
                               negative_prompt_embeds=negative_conditioning).images[0]
         return image
+
+if __name__ == "__main__":
+    # test CUDA
+    print(torch.cuda.is_available())
+    # create sample images
+    creator = ImageCreator()
+    image = creator.create(prompt="flower garden, bright, sunny, happy", negative_prompt="darkness, cold, windy")
+    image.save("test.jpg")
